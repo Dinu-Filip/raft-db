@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+NODE_COUNT=$1;
+BASE_RPC_PORT=${2:-5000};
+BASE_SERVER_PORT=${3:-4000};
+EXEC=${4:-"./build/debug/src/distributed-database/databasenode"};
+
+SESSION="database"
+
+tmux new-session -d -s $SESSION
+tmux set -g mouse on
+tmux set-option -g pane-border-status top
+tmux set-option -g pane-border-format " #{pane_title} "
+
+for ((ID=0; ID < NODE_COUNT; ID++)); do
+    PARAMS="$((BASE_SERVER_PORT+ID)) $NODE_COUNT "
+    for ((NODE_ID=0; NODE_ID < ID; NODE_ID++)); do
+        PARAMS+="127.0.0.1:$((BASE_RPC_PORT+NODE_ID)) ";
+    done
+    if [ $ID -ne $((NODE_COUNT-1)) ]; then
+        PARAMS+=$((BASE_RPC_PORT+ID));
+    fi
+
+    if [ $ID -ne 0 ]; then
+        tmux split-window -t $SESSION -h;
+        tmux select-layout -t $SESSION tiled;
+    fi
+
+    PANE="$SESSION:0.$ID";
+
+    tmux send-keys -t $PANE "$EXEC $PARAMS" C-m;
+    tmux select-pane -t $PANE -T "Node $ID";
+done
+
+tmux select-layout -t $SESSION tiled
+tmux bind-key c kill-session
+tmux attach -t $SESSION

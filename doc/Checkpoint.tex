@@ -1,0 +1,70 @@
+\documentclass[11pt]{article}
+\usepackage[
+  left=1in,
+  right=1in,
+  top=0.5in,
+  bottom=0.8in
+]{geometry}
+% \usepackage{fullpage}
+
+\begin{document}
+
+\title{ARMv8 AArch64 Project Checkpoint Report}
+\author{Constantin Filip, Daniel Howard, Maximillian Smith, Vladimir Filip}
+
+\maketitle
+
+\section{Group organisation}
+
+\subsection{Work allocation and coordination}
+
+Initially, we agreed on the project structure and implemented the shared functionality of the emulator together (see below). We then split the workload based on the four main instruction types - data processing (immediate), data processing (register), load-store and branching - as well as the memory and register implementations. An issue was created for each task and assigned to a team member to complete, with each task being completed in a separate branch. Once the instruction implementation was complete, we met to refactor the code (for example de-duplicating the arithmetic code) and implement the complete FDE cycle for the emulator.
+
+Once we were ready to run the test suite, we pair-programmed with each pair fixing a particular failed test until all tests passed.
+
+\subsection{Evaluation}
+
+Overall, we coordinated well as a team, with every member contributing equally towards the project's progress. Each member completed their tasks on time and to a good standard. We also followed agreed conventions for commit messages and branch titles, and we were able to agree on how to fairly split the workload. We each worked on our tasks on separate branches, creating merge requests when merging into the \texttt{master} branch. Each request was reviewed by at least one other team member to maintain high code quality. Communication in general was respectful and friendly within the team, and we provided frequent updates on our progress.
+
+At times, there were difficulties communicating our different approaches to the emulator implementation. For instance, we had different ideas about how bit-fields would be used to represent instructions, as well as the file organisation of the project. However, in every case, we were able to reach a consensus on the final implementation.
+
+\section{Implementation strategies}
+
+\subsection{Project structure}
+
+ The emulator functionality is contained within the \texttt{emulator} directory in \texttt{src}. Additionally, the \texttt{lib} directory contains reusable components such as data structures and sign extension functions in \texttt{utils}, which can be used by both the emulator and assembler. The decoding and execution of each of the four instruction groups, the core functionality of the emulator, memory and output are each implemented in their own files for modularity. The functionality for each instruction group is contained in its own file, as opposed to separating the decoding and execution of each instruction, to minimise the overall size of the codebase and improve its maintainability.
+
+%  At first, we also used bit-fields to decode instructions as we planned to cast between different instruction types without having to directly handle the bits. We also thought that the bit-fields would help document the internal structure of each instruction.
+
+% However, we later realised that casting between different instruction types was not possible due to padding added by different compilers. Therefore without disabling padding and having to deal with platform specific issues, we decided it would be better to pass in each instruction field as integer arguments. We also later refactored the structure of the code base to use fewer, but bigger files that reduced our overall line count, number of header files and made the code easier to maintain.
+
+\subsection{Emulator implementation}
+
+The emulator has the following five main components: I/O handling, the execution cycle, the emulator core, instruction decoding and execution, and the memory and register implementation.
+
+The I/O handling involves reading the input binary file, loading the input into memory and outputting the register and memory contents. The emulator core consists of an \texttt{EmulatorCore} struct storing the registers and memory, which are shared between all emulator components. The \texttt{Register} struct contains the 30 general purpose registers (stored as an array for faster accesses), the program counter and \texttt{PSTATE} register, storing the arithmetic flags. The \texttt{Memory} struct contains an array representing the 2MB of memory. Using structs in this way allowed us to pass a pointer to access stored state where needed, reducing the number of arguments passed in function calls.
+
+In the execution cycle, each instruction is read from memory and passed to the \texttt{execute} function, which applies bit masks to determine the instruction type based on the opcode. The instruction is then passed to an execution function. Masks defined using macros are applied on each instruction to extract the relevant fields during execution. We opted to use macros rather than parsing the instructions into another internal representation to improve memory efficiency. With each cycle, the program counter is incremented after execution until halt is encountered or the end of the instruction memory is reached.
+
+Memory accesses are done only through \texttt{memRead} and \texttt{memWrite}, which abstract away reading and writing to memory in a little-endian manner. Likewise, register accesses are done through \texttt{regRead} and \texttt{regWrite} to manage accessing the 32- and 64-bit portions of the registers.
+
+\subsection{CI/CD}
+
+We set up a pipeline on GitLab that consists of three stages: checking the format of the source code against a \texttt{clang-format} file, building the project to detect any compilation errors and running tests against the executable. Using the pipeline allowed us to ensure that our code was consistently formatted and able to compile before merging into \texttt{master}.
+
+\subsection{Code style}
+
+At the beginning of our project, we agreed on naming conventions and created a \texttt{clang format} script to maintain a consistent code style across the codebase.
+
+\subsection{Planning for the assembler}
+
+For input and output, we will use the same \texttt{IO} struct as in the emulator. In the emulator, we opted to apply bitwise operations to the instructions, abstracted away using macros, improving memory efficiency by preventing the need to allocate additional structs or bit-fields to represent the instructions. However, for the assembler, we will likely use an internal representation with the assembly code that will be parsed into.
+
+\section{Implementation challenges}
+
+In the assembler, we will likely encounter challenges in finding an optimal internal representation that is a good intermediary between the resulting machine code and the original assembly. We plan to mitigate this by first deciding on an ideal representation before implementing code generation and the parser.
+
+For the extension, we will implement the RAFT consensus algorithm for a simple distributed database system. The challenges will be in implementing low-level networking procedures for remote procedure calls and testing the network.
+
+
+\end{document}

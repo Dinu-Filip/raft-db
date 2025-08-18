@@ -1,0 +1,10 @@
+[
+    {"include": ["<bits/pthreadtypes.h>", "private", "<pthread.h>", "public"]},
+    {"include": ["\"bits/pthreadtypes.h\"", "private", "<pthread.h>", "public"]},
+    {"include": ["<bits/socket_type.h>", "private", "<sys/socket.h>", "public"]},
+    {"include": ["\"bits/socket_type.h\"", "private", "<sys/socket.h>", "public"]},
+    {"include": ["<asm-generic/errno-base.h>", "private", "<errno.h>", "public"]},
+    {"include": ["\"asm-generic/errno-base.h\"", "private", "<errno.h>", "public"]},
+    {"include": ["<bits/signal.h>", "private", "<signal.h>", "public"]},
+    {"include": ["\"bits/signal.h\"", "private", "<signal.h>", "public"]},
+]

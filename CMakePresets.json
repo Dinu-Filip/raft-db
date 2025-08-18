@@ -1,0 +1,50 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 26,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "description": "Default build directory",
+      "generator": "Unix Makefiles",
+      "binaryDir": "build"
+    },
+    {
+      "name": "debug",
+      "description": "Debug log with build directory",
+      "generator": "Unix Makefiles",
+      "binaryDir": "build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_FLAGS_DEBUG": "-DDEBUG"
+      }
+    },
+    {
+      "name": "release",
+      "description": "Release log with build directory",
+      "generator": "Unix Makefiles",
+      "binaryDir": "build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_FLAGS_RELEASE": "-Werror"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default"
+    },
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    }
+  ]
+}

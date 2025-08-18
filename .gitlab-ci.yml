@@ -1,0 +1,102 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+
+stages:
+  - format
+  - build
+  - test
+
+clang-format:
+  stage: format
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache clang-extra-tools
+  script:
+    - clang-format --version
+    - FILES=$(find . -name "*.[ch]")
+    - echo "Running clang-format on the following files:"
+    - echo "$FILES"
+    - clang-format --dry-run -Werror $FILES
+
+newlines:
+  stage: format
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache make
+  script:
+    - make format-newline
+
+build-all:
+  stage: build
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache make gcc g++ libc-dev cmake
+  script:
+    - make release
+  artifacts:
+    paths:
+      - build/release/src/assembler/assemble
+      - build/release/src/emulator/emulate
+    expire_in: 1 hour
+
+build-led-blink:
+  stage: build
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache make gcc g++ libc-dev cmake
+  script:
+    - cd led-blink
+    - make
+  rules:
+    - changes:
+      - led-blink/**/*
+
+test:
+  stage: test
+  image: python:3.10.12-alpine
+  variables:
+    GIT_DEPTH: 0
+  needs:
+    - job: build-all
+      artifacts: true
+  before_script:
+    # We have to reintall grep as the alpine version doesn't allow the -z option
+    - apk add --no-cache git grep
+  script:
+    - git checkout armv8_testsuite
+    - cd testsuite
+    - mkdir solution
+    - cp ../build/release/src/assembler/assemble solution/assemble
+    - cp ../build/release/src/emulator/emulate solution/emulate
+    - ./install
+    - ./run -pf 2>&1 | tee output.log
+    - |
+      if grep -zPq "Assembler Summary:(\n.*){3}\nTotal\s+592\s+0\s+0" output.log; then
+        echo "Assembler tests passed"
+      else
+        echo "Assembler tests failed"
+        grep -l '"diff"' test/actual_results/**/*.json | xargs cat
+        exit 1
+      fi
+    - |
+      if grep -zPq "Emulator Summary:(\n.*){3}\nTotal\s+592\s+0\s+0" output.log; then
+        echo "Emulator tests passed"
+      else
+        echo "Emulator tests failed"
+        exit 1
+      fi
+  rules:
+    - changes:
+      - src/assembler/**/*
+      - src/emulator/**/*
+      - src/lib/**/*
+      - "*"
+
+include-what-you-use-check:
+  stage: test
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache include-what-you-use libc-dev make
+  script:
+    - make iwyu
