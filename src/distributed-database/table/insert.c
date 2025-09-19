@@ -8,16 +8,12 @@
 #include "pages.h"
 #include "table/table.h"
 
-void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
+void updatePageHeaderInsert(Record record, Frame *frame, uint16_t recordStart) {
     LOG("Update page header insert\n");
 
     // Updates free space log in page header
-    page->header->freeSpace -= record->size;
-
-    page->header->modified = true;
-    page->header->numRecords++;
-    // Record always inserted at beginning of free space
-    page->header->recordStart = recordStart;
+    PageHeader pageHeader = getPageHeader(frame);
+    setPageHeader(frame, pageHeader->numRecords + 1, pageHeader->recordStart, pageHeader->freeSpace - record->size);
 
     int idx = 0;
     RecordSlot *temp;
@@ -26,14 +22,14 @@ void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
     // (after a deletion) or end of list is reached, in which case tail is
     // shifted one place
     do {
-        temp = &page->header->recordSlots[idx++];
+        temp = &pageHeader->recordSlots[idx++];
         if (temp->size == PAGE_TAIL) {
-            RecordSlot *newTail = &page->header->recordSlots[idx];
+            RecordSlot *newTail = &pageHeader->recordSlots[idx];
             newTail->size = PAGE_TAIL;
             newTail->modified = true;
 
             // Total free space subtracted for new slot
-            page->header->freeSpace -= OFFSET_WIDTH + SIZE_WIDTH;
+            pageHeader->freeSpace -= OFFSET_WIDTH + SIZE_WIDTH;
         }
         if (temp->size == 0 || temp->size == PAGE_TAIL) {
             temp->offset = recordStart;

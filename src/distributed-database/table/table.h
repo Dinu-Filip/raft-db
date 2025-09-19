@@ -238,7 +238,7 @@ extern void writeField(uint8_t *fieldStart, Field field);
  * @param recordEnd offset of end of record
  * @return offset to start of record
  */
-extern uint16_t writeRecord(Frame frame, Record record, uint32_t globalIdx,
+extern uint16_t writeRecord(Frame *frame, Record record, uint32_t globalIdx,
                             uint16_t recordEnd);
 
 /**

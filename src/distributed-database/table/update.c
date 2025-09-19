@@ -14,12 +14,12 @@
 #include "select.h"
 #include "table.h"
 
-static void updatePageHeaderUpdate(Page page, Record record, uint16_t oldSize,
+static void updatePageHeaderUpdate(Frame *frame, Record record, uint16_t oldSize,
                                    RecordSlot *slot, uint16_t recordStart) {
     LOG("Update page header of page %d\n", page->pageId);
     // Updates free space log in page header
-    page->header->freeSpace -= oldSize - record->size;
-    page->header->modified = true;
+    PageHeader pageHeader = getPageHeader(frame);
+    setPageHeader(frame, pageHeader->numRecords, pageHeader->recordStart, pageHeader->freeSpace - oldSize + record->size);
 
     assert(record->size <= INT16_MAX);
     slot->size = record->size;
@@ -54,7 +54,7 @@ static void updateField(Field *field, Operand op) {
 }
 
 static void updateRecord(TableInfo tableInfo, Schema *schema,
-                         TableInfo spaceMap, Record record, Page page,
+                         TableInfo spaceMap, Record record, Frame *frame,
                          QueryAttributes queryAttributes,
                          QueryValues queryValues, RecordIterator *iterator) {
     size_t oldSize = record->size;
@@ -83,14 +83,13 @@ static void updateRecord(TableInfo tableInfo, Schema *schema,
         uint16_t recordEnd =
             iterator->lastSlot->offset + iterator->lastSlot->size;
         uint16_t recordStart =
-            writeRecord(page, record, record->globalIdx, recordEnd);
-        updatePageHeaderUpdate(page, record, oldSize, iterator->lastSlot,
+            writeRecord(frame, record, record->globalIdx, recordEnd);
+        updatePageHeaderUpdate(frame, record, oldSize, iterator->lastSlot,
                                recordStart);
-        Record newRecord = parseRecord(page, recordStart, schema);
+        Record newRecord = parseRecord(frame, recordStart, schema);
         LOG("New record\n");
         outputRecord(newRecord);
         defragmentRecords(iterator->page);
-        updatePage(tableInfo, page);
         freeRecord(newRecord);
     } else {
         LOG("Relocate record\n");
