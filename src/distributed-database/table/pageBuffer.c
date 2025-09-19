@@ -14,7 +14,6 @@ struct Frame {
     bool dirty;
     Page page;
 };
-typedef struct Frame Frame;
 
 struct Buffer {
     Frame frames[BUFFER_POOL_SIZE];
@@ -22,7 +21,7 @@ struct Buffer {
     IntHashmap frameMap;
 };
 
-Frame *getFrame(Buffer buffer);
+Frame *evictAndGetFrame(Buffer buffer);
 void loadPageToFrame(Page page, Frame *frame);
 
 Buffer initialiseBuffer() {
@@ -37,17 +36,19 @@ Buffer initialiseBuffer() {
 }
 
 void freeBuffer(Buffer buffer) {
+    // TODO: Free all pages in buffer
+
     freeIntHashmap(buffer->frameMap);
     free(buffer);
 }
 
-Page loadPage(TableInfo tableInfo, Buffer buffer, size_t pageId) {
+Frame *loadFrame(TableInfo tableInfo, Buffer buffer, size_t pageId) {
     Frame *frame = getIntHashmap(buffer->frameMap, pageId);
 
     if (frame == NULL) {
         // Cache miss
         Page page = getPage(tableInfo, pageId);
-        Frame *newFrame = getFrame(buffer);
+        Frame *newFrame = evictAndGetFrame(buffer);
         loadPageToFrame(page, newFrame);
         addIntHashmap(buffer->frameMap, pageId, newFrame);
         return page;
@@ -55,10 +56,10 @@ Page loadPage(TableInfo tableInfo, Buffer buffer, size_t pageId) {
 
     if (frame->usageIdx < MAX_USAGE) frame->usageIdx++;
 
-    return frame->page;
+    return frame;
 }
 
-Frame *getFrame(Buffer buffer) {
+Frame *evictAndGetFrame(Buffer buffer) {
     size_t *clock = &buffer->clock;
 
     while (buffer->frames[*clock].usageIdx != EVICT_USAGE) {
@@ -69,6 +70,8 @@ Frame *getFrame(Buffer buffer) {
         }
     }
 
+    freePage(buffer->frames[*clock].page);
+
     return &buffer->frames[*clock];
 }
 
@@ -76,4 +79,15 @@ void loadPageToFrame(Page page, Frame *frame) {
     frame->usageIdx = INITIAL_USAGE;
     frame->page = page;
     frame->dirty = false;
+}
+
+void setPageHeader(Frame *frame, uint16_t numRecords, uint16_t recordStart, uint16_t freeSpace) {
+    frame->page->header->numRecords = numRecords;
+    frame->page->header->recordStart = recordStart;
+    frame->page->header->freeSpace = freeSpace;
+    frame->page->header->modified = true;
+}
+
+PageHeader getPageHeader(Frame *frame) {
+    return frame->page->header;
 }

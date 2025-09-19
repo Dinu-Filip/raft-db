@@ -5,13 +5,13 @@
 #include "table/operation.h"
 #include "table/table.h"
 
-static void removeRecord(char *tableName, TableInfo spaceMap, Page page,
+static void removeRecord(char *tableName, TableInfo spaceMap, Frame *frame,
                          RecordSlot *slot, size_t recordSize) {
     slot->size = 0;
     slot->modified = true;
-    page->header->modified = true;
-    page->header->freeSpace += recordSize + SLOT_SIZE;
-    page->header->numRecords--;
+
+    PageHeader header = getPageHeader(frame);
+    setPageHeader(frame, header->numRecords - 1, header->recordStart - recordSize, header->freeSpace + recordSize + SLOT_SIZE);
 
     // if (spaceMap != NULL) {
     //     updateSpaceInventory(tableName, spaceMap, page);

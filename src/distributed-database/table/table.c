@@ -174,6 +174,7 @@ TableInfo openTable(char *tableName) {
     tableInfo->table = table;
     tableInfo->name = strdup(tableName);
     tableInfo->header = getTableHeader(table);
+    tableInfo->buffer = initialiseBuffer();
 
     LOG("Got table\n");
     return tableInfo;
@@ -490,7 +491,7 @@ void updateTableHeader(TableInfo tableInfo) {
 }
 
 void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
-                          Page page) {
+                          Frame *frame) {
     LOG("Update space inventory\n");
 
     Condition cond = malloc(sizeof(struct Condition));
@@ -499,7 +500,9 @@ void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
     cond->type = EQUALS;
     cond->value.twoArg.op1 = SPACE_INFO_ID;
 
-    int id = page->pageId;
+    Page page = getPageFromFrame(frame);
+
+    size_t id = page->pageId;
     assert(id <= INT_MAX);
     cond->value.twoArg.op2 = createOperand(INT, &id);
 
@@ -540,9 +543,8 @@ static int countNumVarFields(Record record) {
     return numVar;
 }
 
-uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
+uint16_t writeRecord(Frame *frame, Record record, uint32_t globalIdx,
                      uint16_t recordEnd) {
-    outputRecord(record);
     LOG("Write record %d\n", globalIdx);
     // Offset to start of record
     uint16_t recordStart = recordEnd - record->size;
@@ -568,12 +570,12 @@ uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
             // Writes (pos, width) slot for each variable length field, updating
             // start of static fields
             slotEnd -= OFFSET_WIDTH + SIZE_WIDTH;
-            memcpy(page->ptr + slotEnd, &recordEnd, OFFSET_WIDTH);
-            memcpy(page->ptr + slotEnd + OFFSET_WIDTH, &field.size, SIZE_WIDTH);
+            copyToFrame(frame, slotEnd, &recordEnd, OFFSET_WIDTH);
+            copyToFrame(frame, slotEnd + OFFSET_WIDTH, &field.size, SIZE_WIDTH);
         }
     }
     // Writes offset to start of static length fields
-    memcpy(page->ptr + recordStart, &staticFieldStart, RECORD_HEADER_WIDTH);
+    copyToFrame(frame, recordStart, &staticFieldStart, RECORD_HEADER_WIDTH);
 
     return recordStart;
 }
@@ -612,6 +614,7 @@ void closeTable(TableInfo tableInfo) {
     fclose(tableInfo->table);
     free(tableInfo->header);
     free(tableInfo->name);
+    freeBuffer(tableInfo->buffer);
     free(tableInfo);
 }
 

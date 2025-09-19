@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "pageBuffer.h"
 #include "schema.h"
 
 #define MAX_FILE_NAME_LEN 200
@@ -105,6 +106,7 @@ struct TableHeader {
 typedef struct TableInfo *TableInfo;
 struct TableInfo {
     FILE *table;
+    Buffer buffer;
     TableHeader header;
     char *name;
 };
@@ -230,13 +232,13 @@ extern void writeField(uint8_t *fieldStart, Field field);
 
 /**
  * Writes record to page starting backwards from recordEnd
- * @param page page to write record to
+ * @param frame frame to write record to
  * @param record record to write
  * @param globalIdx global index of record
  * @param recordEnd offset of end of record
  * @return offset to start of record
  */
-extern uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
+extern uint16_t writeRecord(Frame frame, Record record, uint32_t globalIdx,
                             uint16_t recordEnd);
 
 /**
