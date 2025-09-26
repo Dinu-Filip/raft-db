@@ -5,21 +5,25 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "insert.h"
+#include "../insert.h"
+#include "../schema.h"
+#include "../select.h"
 #include "log.h"
-#include "schema.h"
-#include "select.h"
 #include "table/operation.h"
 
 #define INITIAL_NUM_SLOTS 10
 
-static PageHeader getPageHeader(uint8_t *ptr) {
-    PageHeader pageHeader = calloc(1, sizeof(struct PageHeader));
+static copyFromPage(Page page, uint16_t offset, void *dest, int n) {
+    memcpy(dest, page->ptr + offset, n);
+}
+
+static PageHeader getPageHeader(Page page) {
+    PageHeader pageHeader = malloc(sizeof(struct PageHeader));
     assert(pageHeader != NULL);
 
-    memcpy(&pageHeader->numRecords, ptr + NUM_RECORDS_IDX, NUM_RECORDS_WIDTH);
-    memcpy(&pageHeader->recordStart, ptr + RECORD_START_IDX, NUM_RECORDS_WIDTH);
-    memcpy(&pageHeader->freeSpace, ptr + FREE_SPACE_IDX, NUM_RECORDS_WIDTH);
+    copyFromPage(page, NUM_RECORDS_IDX, &pageHeader->numRecords, NUM_RECORDS_WIDTH);
+    copyFromPage(page, RECORD_START_IDX, &pageHeader->numRecords, NUM_RECORDS_WIDTH);
+    copyFromPage(page, FREE_SPACE_IDX, &pageHeader->numRecords, NUM_RECORDS_WIDTH);
 
     pageHeader->modified = false;
 
@@ -28,7 +32,7 @@ static PageHeader getPageHeader(uint8_t *ptr) {
     assert(slots != NULL);
 
     RecordSlot slot;
-    uint8_t *start = ptr + POS_ARRAY_IDX;
+    uint8_t *start = page->ptr + POS_ARRAY_IDX;
 
     // Iterates through record slots and stopping at the
     // terminating slot

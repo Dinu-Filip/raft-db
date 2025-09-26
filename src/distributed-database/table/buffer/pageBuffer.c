@@ -1,6 +1,8 @@
 #include "pageBuffer.h"
+
 #include <assert.h>
 #include <stdbool.h>
+
 #include "int-hashmap.h"
 
 #define BUFFER_POOL_SIZE 64

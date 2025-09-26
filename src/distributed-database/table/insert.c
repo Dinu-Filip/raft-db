@@ -3,9 +3,9 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include "buffer/pages.h"
 #include "db-utils.h"
 #include "log.h"
-#include "pages.h"
 #include "table/table.h"
 
 void updatePageHeaderInsert(Record record, Frame *frame, uint16_t recordStart) {

@@ -5,7 +5,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "table.h"
+#include "pageBuffer.h"
+#include "../table.h"
 
 typedef struct PageHeader *PageHeader;
 struct PageHeader {
@@ -86,4 +87,21 @@ extern void updatePage(TableInfo tableInfo, Page page);
  */
 extern void addPageToSpaceInventory(char *tableName, TableInfo spaceInfo,
                                     Page page);
+
+/**
+ *
+ * @param frame frame with page header to modify
+ * @param numRecords number of records in page
+ * @param recordStart start of contiguous records
+ * @param freeSpace amount of free space
+ */
+extern void setPageHeader(Frame *frame, uint16_t numRecords, uint16_t recordStart, uint16_t freeSpace);
+
+/**
+ *
+ * @param frame frame to get page from
+ * @return page stored in frame
+ */
+extern Page getPageFromFrame(Frame *frame);
+
 #endif  // PAGES_H

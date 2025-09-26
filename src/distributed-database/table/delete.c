@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
+#include "buffer/pages.h"
 #include "conditions.h"
-#include "pages.h"
 #include "table/operation.h"
 #include "table/table.h"
 

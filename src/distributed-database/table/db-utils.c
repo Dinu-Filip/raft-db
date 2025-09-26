@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "pages.h"
+#include "buffer/pages.h"
 #include "table.h"
 #include "utils.h"
 

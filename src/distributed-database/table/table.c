@@ -7,9 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "buffer/pages.h"
 #include "db-utils.h"
 #include "log.h"
-#include "pages.h"
 #include "schema.h"
 #include "table/operation.h"
 #include "update.h"
@@ -447,7 +447,7 @@ void initialiseRecordIterator(RecordIterator *iterator) {
     iterator->slotIdx = 0;
 }
 
-void writeField(uint8_t *fieldStart, Field field) {
+void writeField(Frame *frame, uint16_t offset, Field field) {
     void *value;
 
     switch (field.type) {
@@ -468,7 +468,7 @@ void writeField(uint8_t *fieldStart, Field field) {
             LOG_ERROR("Invalid field\n");
     }
 
-    memcpy(fieldStart, value, field.size);
+    memcpy(frame->page->  fieldStart, value, field.size);
 }
 
 void updateTableHeader(TableInfo tableInfo) {

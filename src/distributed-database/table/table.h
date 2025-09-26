@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "pageBuffer.h"
+#include "buffer/pageBuffer.h"
 #include "schema.h"
 
 #define MAX_FILE_NAME_LEN 200
