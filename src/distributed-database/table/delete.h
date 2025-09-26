@@ -3,10 +3,8 @@
 
 #include "table.h"
 
-extern void deleteFrom(TableInfo table, TableInfo spaceMap, Schema *schema,
-                       Condition condition);
+extern void deleteFrom(TableInfo table, Schema *schema, Condition condition);
 
-extern void deleteOperation(TableInfo table, TableInfo spaceMap, Schema *schema,
-                            Operation operation);
+extern void deleteOperation(TableInfo table, Schema *schema, Operation operation);
 
 #endif  // DELETE_H

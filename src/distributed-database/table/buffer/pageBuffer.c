@@ -13,7 +13,6 @@
 
 struct Frame {
     size_t usageIdx;
-    bool dirty;
     Page page;
 };
 
@@ -23,8 +22,8 @@ struct Buffer {
     IntHashmap frameMap;
 };
 
-Frame *evictAndGetFrame(Buffer buffer);
-void loadPageToFrame(Page page, Frame *frame);
+static Frame *evictAndGetFrame(TableInfo tableInfo, Buffer buffer);
+static void loadPageToFrame(Page page, Frame *frame);
 
 Buffer initialiseBuffer() {
     Buffer buffer = malloc(sizeof(struct Buffer));
@@ -44,13 +43,13 @@ void freeBuffer(Buffer buffer) {
     free(buffer);
 }
 
-Frame *loadFrame(TableInfo tableInfo, Buffer buffer, size_t pageId) {
+Page loadPage(TableInfo tableInfo, Buffer buffer, size_t pageId) {
     Frame *frame = getIntHashmap(buffer->frameMap, pageId);
 
     if (frame == NULL) {
         // Cache miss
         Page page = getPage(tableInfo, pageId);
-        Frame *newFrame = evictAndGetFrame(buffer);
+        Frame *newFrame = evictAndGetFrame(tableInfo, buffer);
         loadPageToFrame(page, newFrame);
         addIntHashmap(buffer->frameMap, pageId, newFrame);
         return page;
@@ -58,10 +57,10 @@ Frame *loadFrame(TableInfo tableInfo, Buffer buffer, size_t pageId) {
 
     if (frame->usageIdx < MAX_USAGE) frame->usageIdx++;
 
-    return frame;
+    return frame->page;
 }
 
-Frame *evictAndGetFrame(Buffer buffer) {
+static Frame *evictAndGetFrame(TableInfo tableInfo, Buffer buffer) {
     size_t *clock = &buffer->clock;
 
     while (buffer->frames[*clock].usageIdx != EVICT_USAGE) {
@@ -72,24 +71,25 @@ Frame *evictAndGetFrame(Buffer buffer) {
         }
     }
 
-    freePage(buffer->frames[*clock].page);
+    Page oldPage = buffer->frames[*clock].page;
+    if (oldPage->dirty) {
+        updatePage(tableInfo, oldPage);
+    }
+    freePage(oldPage);
+
 
     return &buffer->frames[*clock];
 }
 
-void loadPageToFrame(Page page, Frame *frame) {
+static void loadPageToFrame(Page page, Frame *frame) {
     frame->usageIdx = INITIAL_USAGE;
     frame->page = page;
-    frame->dirty = false;
+    page->dirty = false;
 }
 
-void setPageHeader(Frame *frame, uint16_t numRecords, uint16_t recordStart, uint16_t freeSpace) {
-    frame->page->header->numRecords = numRecords;
-    frame->page->header->recordStart = recordStart;
-    frame->page->header->freeSpace = freeSpace;
-    frame->page->header->modified = true;
-}
-
-PageHeader getPageHeader(Frame *frame) {
-    return frame->page->header;
+void setPageHeader(Page page, uint16_t numRecords, uint16_t recordStart, uint16_t freeSpace) {
+    page->header->numRecords = numRecords;
+    page->header->recordStart = recordStart;
+    page->header->freeSpace = freeSpace;
+    page->header->modified = true;
 }

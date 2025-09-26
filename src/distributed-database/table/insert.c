@@ -3,18 +3,12 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "buffer/pages.h"
-#include "db-utils.h"
+#include "buffer/pageBuffer.h"
 #include "log.h"
 #include "table/table.h"
 
-void updatePageHeaderInsert(Record record, Frame *frame, uint16_t recordStart) {
-    LOG("Update page header insert\n");
-
-    // Updates free space log in page header
-    PageHeader pageHeader = getPageHeader(frame);
-    setPageHeader(frame, pageHeader->numRecords + 1, pageHeader->recordStart, pageHeader->freeSpace - record->size);
-
+static updateSlots(PageHeader pageHeader, uint16_t recordStart,
+                   size_t recordSize) {
     int idx = 0;
     RecordSlot *temp;
 
@@ -34,13 +28,23 @@ void updatePageHeaderInsert(Record record, Frame *frame, uint16_t recordStart) {
         if (temp->size == 0 || temp->size == PAGE_TAIL) {
             temp->offset = recordStart;
 
-            assert(record->size <= INT16_MAX);
-            temp->size = record->size;
+            assert(recordSize <= INT16_MAX);
+            temp->size = recordSize;
 
             temp->modified = true;
             break;
         }
     } while (temp->size != PAGE_TAIL);
+}
+
+void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
+    LOG("Update page header insert\n");
+
+    // Updates free space log in page header
+    PageHeader pageHeader = page->header;
+    setPageHeader(page, pageHeader->numRecords + 1, pageHeader->recordStart,
+                  pageHeader->freeSpace - record->size);
+    updateSlots(page->header, recordStart, record->size);
 }
 
 void insertInto(TableInfo tableInfo, TableInfo spaceMap, Schema *schema,
@@ -49,15 +53,12 @@ void insertInto(TableInfo tableInfo, TableInfo spaceMap, Schema *schema,
     // Assumed no null or missing values
     Record record =
         parseQuery(schema, attributes, values, tableInfo->header->globalIdx);
-
-    outputRecord(record);
     insertRecord(tableInfo, spaceMap, schema, record, type);
     freeRecord(record);
 }
 
 void insertRecord(TableInfo tableInfo, TableInfo spaceMap, Schema *schema,
                   Record record, TableType type) {
-    outputRecord(record);
     Page page = nextFreePage(tableInfo, spaceMap, record->size, type);
 
     // Increment global index
@@ -68,14 +69,12 @@ void insertRecord(TableInfo tableInfo, TableInfo spaceMap, Schema *schema,
     uint16_t recordStart = writeRecord(
         page, record, tableInfo->header->globalIdx, page->header->recordStart);
     updatePageHeaderInsert(record, page, recordStart);
-    updatePage(tableInfo, page);
 
     if (type == RELATION) {
         // Updates free space in page if table is a relation
         updateSpaceInventory(tableInfo->name, spaceMap, page);
     }
 
-    outputRecord(record);
     freePage(page);
     updateTableHeader(tableInfo);
 }

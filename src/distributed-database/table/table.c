@@ -245,7 +245,7 @@ Record parseRecord(Page page, size_t offset, Schema *schema) {
         char *attribute = schema->attributes[i];
         AttributeType type = schema->attributeTypes[i];
         if (type == VARSTR) {
-            getRecordSlot(&slot, slotsStart);
+            getRecordSlot(slotsStart);
             slotsStart += SLOT_SIZE;
             parseField(fields + i + 1, attribute, type, slot.size,
                        page->ptr + slot.offset);
@@ -314,10 +314,12 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
     return NULL;
 }
 
-void getRecordSlot(RecordSlot *slot, uint8_t *idx) {
-    memcpy(&slot->offset, idx, OFFSET_WIDTH);
-    memcpy(&slot->size, idx + OFFSET_WIDTH, SIZE_WIDTH);
-    slot->pos = idx;
+RecordSlot getRecordSlot(uint8_t *idx) {
+    RecordSlot slot;
+    memcpy(&slot.offset, idx, OFFSET_WIDTH);
+    memcpy(&slot.size, idx + OFFSET_WIDTH, SIZE_WIDTH);
+    slot.pos = idx;
+    return slot;
 }
 
 int compareSlots(const void *slot1, const void *slot2) {
@@ -447,7 +449,7 @@ void initialiseRecordIterator(RecordIterator *iterator) {
     iterator->slotIdx = 0;
 }
 
-void writeField(Frame *frame, uint16_t offset, Field field) {
+void writeField(Page page, uint16_t offset, Field field) {
     void *value;
 
     switch (field.type) {
@@ -468,7 +470,7 @@ void writeField(Frame *frame, uint16_t offset, Field field) {
             LOG_ERROR("Invalid field\n");
     }
 
-    memcpy(frame->page->  fieldStart, value, field.size);
+    memcpy(page->ptr + offset, value, field.size);
 }
 
 void updateTableHeader(TableInfo tableInfo) {
@@ -543,7 +545,7 @@ static int countNumVarFields(Record record) {
     return numVar;
 }
 
-uint16_t writeRecord(Frame *frame, Record record, uint32_t globalIdx,
+uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
                      uint16_t recordEnd) {
     LOG("Write record %d\n", globalIdx);
     // Offset to start of record
@@ -570,12 +572,12 @@ uint16_t writeRecord(Frame *frame, Record record, uint32_t globalIdx,
             // Writes (pos, width) slot for each variable length field, updating
             // start of static fields
             slotEnd -= OFFSET_WIDTH + SIZE_WIDTH;
-            copyToFrame(frame, slotEnd, &recordEnd, OFFSET_WIDTH);
-            copyToFrame(frame, slotEnd + OFFSET_WIDTH, &field.size, SIZE_WIDTH);
+            copyToPage(page, slotEnd, &recordEnd, OFFSET_WIDTH);
+            copyToPage(page, slotEnd + OFFSET_WIDTH, &field.size, SIZE_WIDTH);
         }
     }
     // Writes offset to start of static length fields
-    copyToFrame(frame, recordStart, &staticFieldStart, RECORD_HEADER_WIDTH);
+    copyToPage(page, recordStart, &staticFieldStart, RECORD_HEADER_WIDTH);
 
     return recordStart;
 }

@@ -8,19 +8,22 @@
 #include "pageBuffer.h"
 #include "../table.h"
 
+typedef struct SlotArray *SlotArray;
+
 typedef struct PageHeader *PageHeader;
 struct PageHeader {
     bool modified;
     uint16_t numRecords;
     uint16_t recordStart;
     uint16_t freeSpace;
-    RecordSlot *recordSlots;
+    SlotArray recordSlots;
 };
 
 typedef struct Page *Page;
 struct Page {
     uint8_t *ptr;
     PageHeader header;
+    bool dirty;
     uint16_t pageId;
 };
 
@@ -73,13 +76,6 @@ extern Page addPage(TableInfo table);
 extern uint8_t *getRawPage(FILE *table, size_t pageSize, size_t pageId);
 
 /**
- * Updates and writes page to disk
- * @param tableInfo
- * @param page
- */
-extern void updatePage(TableInfo tableInfo, Page page);
-
-/**
  * Inserts entry for free space in page to space inventory
  * @param tableName name of table
  * @param spaceInfo space map
@@ -103,5 +99,12 @@ extern void setPageHeader(Frame *frame, uint16_t numRecords, uint16_t recordStar
  * @return page stored in frame
  */
 extern Page getPageFromFrame(Frame *frame);
+
+/**
+ *
+ * @param tableInfo All table information
+ * @param page Page to write to disk
+ */
+void updatePage(TableInfo tableInfo, Page page);
 
 #endif  // PAGES_H

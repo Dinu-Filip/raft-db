@@ -49,7 +49,6 @@ QueryResult selectFrom(TableInfo tableInfo, Schema *schema, Condition cond,
     result->numRecords = 0;
 
     RecordArray recordArray = createRecordArray();
-    assert(recordArray != NULL);
 
     result->records = recordArray;
 

@@ -1,10 +1,9 @@
-#include "pages.h"
-
 #include <assert.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "pages.h"
 #include "../insert.h"
 #include "../schema.h"
 #include "../select.h"
@@ -13,11 +12,52 @@
 
 #define INITIAL_NUM_SLOTS 10
 
-static copyFromPage(Page page, uint16_t offset, void *dest, int n) {
-    memcpy(dest, page->ptr + offset, n);
+struct SlotArray {
+    RecordSlot *slots;
+    size_t size;
+    size_t capacity;
+};
+
+SlotArray initSlotArray() {
+    SlotArray slots = malloc(sizeof(struct SlotArray));
+    assert(slots != NULL);
+
+    slots->slots = malloc(sizeof(RecordSlot) * INITIAL_NUM_SLOTS);
+    slots->size = 0;
+    slots->capacity = INITIAL_NUM_SLOTS;
+
+    return slots;
 }
 
-static PageHeader getPageHeader(Page page) {
+void addSlot(SlotArray slotArray, RecordSlot slot) {
+    if (slotArray->size == slotArray->capacity) {
+        slotArray->capacity *= 2;
+
+        slotArray->slots = realloc(slotArray->slots, slotArray->capacity * sizeof(RecordSlot));
+        assert(slotArray->slots != NULL);
+    }
+
+    slotArray->slots[slotArray->size++] = slot;
+}
+
+static SlotArray readSlots(void *start) {
+    SlotArray slots = initSlotArray();
+    RecordSlot slot;
+    do {
+        slot = getRecordSlot(start);
+        start += SLOT_SIZE;
+        addSlot(slots, slot);
+    } while (slot.size != PAGE_TAIL);
+
+    return slots;
+}
+
+static void freeSlots(SlotArray slots) {
+    free(slots->slots);
+    free(slots);
+}
+
+static PageHeader loadPageHeader(Page page) {
     PageHeader pageHeader = malloc(sizeof(struct PageHeader));
     assert(pageHeader != NULL);
 
@@ -27,36 +67,13 @@ static PageHeader getPageHeader(Page page) {
 
     pageHeader->modified = false;
 
-    int numSlots = INITIAL_NUM_SLOTS;
-    RecordSlot *slots = malloc(sizeof(RecordSlot) * numSlots);
-    assert(slots != NULL);
-
-    RecordSlot slot;
-    uint8_t *start = page->ptr + POS_ARRAY_IDX;
-
-    // Iterates through record slots and stopping at the
-    // terminating slot
-    int idx = 0;
-    do {
-        if (idx == numSlots - 1) {
-            numSlots += 10;
-
-            // Dynamically resizes when end of record slots array reached
-            RecordSlot *newSlots =
-                realloc(slots, numSlots * sizeof(RecordSlot));
-            assert(newSlots != NULL);
-
-            slots = newSlots;
-        }
-        getRecordSlot(&slot, start);
-        slot.modified = false;
-        start += SLOT_SIZE;
-        slots[idx++] = slot;
-    } while (slot.size != PAGE_TAIL);
-
-    pageHeader->recordSlots = slots;
+    pageHeader->recordSlots = readSlots(page->ptr + POS_ARRAY_IDX);
 
     return pageHeader;
+}
+
+static void copyFromPage(Page page, uint16_t offset, void *dest, int n) {
+    memcpy(dest, page->ptr + offset, n);
 }
 
 uint8_t *getRawPage(FILE *table, size_t pageSize, size_t pageId) {
@@ -89,7 +106,7 @@ Page getPage(TableInfo table, size_t pageId) {
     fread(ptr, sizeof(uint8_t), pageSize, table->table);
 
     page->ptr = ptr;
-    page->header = getPageHeader(ptr);
+    page->header = loadPageHeader(ptr);
     page->pageId = (uint16_t)pageId;
 
     fseek(table->table, 0, SEEK_SET);
@@ -117,7 +134,7 @@ Page addPage(TableInfo table) {
     fread(ptr, sizeof(uint8_t), pageSize, table->table);
 
     page->ptr = ptr;
-    page->header = getPageHeader(ptr);
+    page->header = loadPageHeader(ptr);
     page->pageId = table->header->numPages;
 
     // Sets start page if no other pages allocated
@@ -144,6 +161,19 @@ void addPageToSpaceInventory(char *tableName, TableInfo spaceInfo, Page page) {
     freeInsertOperationTest(operation);
 }
 
+static void updateSlots(void *start, SlotArray slots) {
+    int idx = 0;
+    RecordSlot currentSlot;
+    do {
+        currentSlot = slots->slots[idx];
+        if (currentSlot.modified) {
+            memcpy(start + POS_ARRAY_IDX + idx * SLOT_SIZE, &currentSlot.offset, OFFSET_WIDTH);
+            memcpy(start + POS_ARRAY_IDX + idx * SLOT_SIZE + OFFSET_WIDTH, &currentSlot.size, SIZE_WIDTH);
+        }
+        idx++;
+    } while (currentSlot.size != PAGE_TAIL);
+}
+
 static void writePageHeader(Page page) {
     LOG("Update page header");
     PageHeader header = page->header;
@@ -155,25 +185,12 @@ static void writePageHeader(Page page) {
         memcpy(ptr + FREE_SPACE_IDX, &header->freeSpace, NUM_RECORDS_WIDTH);
     }
 
-    // Updates modified slots
-    int idx = 0;
-    RecordSlot currentSlot;
-    do {
-        currentSlot = header->recordSlots[idx];
-        if (currentSlot.modified) {
-            memcpy(ptr + POS_ARRAY_IDX + idx * (OFFSET_WIDTH + SIZE_WIDTH),
-                   &currentSlot.offset, OFFSET_WIDTH);
-            memcpy(ptr + POS_ARRAY_IDX + idx * (OFFSET_WIDTH + SIZE_WIDTH) +
-                       OFFSET_WIDTH,
-                   &currentSlot.size, SIZE_WIDTH);
-        }
-        idx++;
-    } while (currentSlot.size != PAGE_TAIL);
+    updateSlots(ptr, page->header->recordSlots);
 }
 
 void freePage(Page page) {
     free(page->ptr);
-    free(page->header->recordSlots);
+    freeSlots(page->header->recordSlots);
     free(page->header);
     free(page);
 }
@@ -280,7 +297,7 @@ Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
     return getPage(tableInfo, pageId);
 }
 
-void updatePage(TableInfo tableInfo, Page page) {
+static void updatePage(TableInfo tableInfo, Page page) {
     LOG("Update page\n");
     writePageHeader(page);
     fseek(tableInfo->table, _PAGE_SIZE * page->pageId, SEEK_SET);

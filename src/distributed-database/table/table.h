@@ -198,7 +198,7 @@ extern Record parseRecord(Page page, size_t offset, Schema *schema);
  * @param slot pointer to slot
  * @param idx pointer to raw slot
  */
-extern void getRecordSlot(RecordSlot *slot, uint8_t *idx);
+extern RecordSlot getRecordSlot(void *idx);
 
 /**
  * Shifts records and updates slots to ensure records are contiguous in memory
