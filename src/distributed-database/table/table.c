@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "buffer/pages.h"
+#include "buffer/pageBuffer.h"
 #include "db-utils.h"
 #include "log.h"
 #include "schema.h"
@@ -65,8 +65,18 @@ static void parseQueryValue(Field *field, Operand attributeValue,
             break;
         default:
             LOG_ERROR("Invalid query\n");
-            exit(EXIT_FAILURE);
     }
+}
+
+static void setRecordIdx(Record record, uint32_t globalIdx, int *recordSize) {
+    assert(record != NULL);
+    record->fields[GLOBAL_ID_RECORD_IDX].attribute = strdup(GLOBAL_ID_NAME);
+    record->fields[GLOBAL_ID_RECORD_IDX].type = INT;
+    assert(globalIdx <= INT32_MAX);
+    record->fields[GLOBAL_ID_RECORD_IDX].intValue = globalIdx;
+    record->fields[GLOBAL_ID_RECORD_IDX].size = GLOBAL_ID_WIDTH;
+
+    *recordSize += GLOBAL_ID_WIDTH;
 }
 
 Record parseQuery(Schema *schema, QueryAttributes attributes,
@@ -81,14 +91,8 @@ Record parseQuery(Schema *schema, QueryAttributes attributes,
     assert(record->fields != NULL);
 
     int recordSize = 0;
+    setRecordIdx(record, globalIdx, &recordSize);
 
-    record->fields[GLOBAL_ID_RECORD_IDX].attribute = strdup(GLOBAL_ID_NAME);
-    record->fields[GLOBAL_ID_RECORD_IDX].type = INT;
-    assert(globalIdx <= INT32_MAX);
-    record->fields[GLOBAL_ID_RECORD_IDX].intValue = globalIdx;
-    record->fields[GLOBAL_ID_RECORD_IDX].size = GLOBAL_ID_WIDTH;
-
-    recordSize += GLOBAL_ID_WIDTH;
     record->globalIdx = globalIdx;
     for (int j = 0; j < schema->numAttributes; j++) {
         for (int i = 0; i < attributes->numAttributes; i++) {
@@ -263,8 +267,8 @@ Record parseRecord(Page page, size_t offset, Schema *schema) {
     return record;
 }
 
-Record iterateRecords(TableInfo tableInfo, Schema *schema,
-                      RecordIterator *recordIterator, bool autoClearPage) {
+Record iterateRecords(TableInfo tableInfo, Schema *schema, Buffer buffer,
+                      RecordIterator *recordIterator) {
     if (tableInfo->header->numPages == 0) {
         return NULL;
     }
@@ -272,7 +276,7 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
     // Sets iterator fields at start of iteration
     if (recordIterator->page == NULL) {
         recordIterator->pageId = tableInfo->header->startPage;
-        recordIterator->page = getPage(tableInfo, recordIterator->pageId);
+        recordIterator->page = loadPage(tableInfo, buffer, recordIterator->pageId);
         recordIterator->slotIdx = 0;
     }
 
@@ -282,13 +286,12 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
 
     while (recordIterator->pageId <= maxId) {
         RecordSlot *nextSlot =
-            &recordIterator->page->header->recordSlots[recordIterator->slotIdx];
+            &recordIterator->page->header->recordSlots->slots[recordIterator->slotIdx];
 
         // Iterates over empty slots
         while (nextSlot->size == 0) {
             recordIterator->slotIdx++;
-            nextSlot = &recordIterator->page->header
-                            ->recordSlots[recordIterator->slotIdx];
+            nextSlot = &recordIterator->page->header->recordSlots->slots[recordIterator->slotIdx];
         }
 
         // If end of slot array encountered, moves to next page as long as
@@ -297,13 +300,9 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
             recordIterator->pageId++;
             recordIterator->slotIdx = 0;
 
-            if (autoClearPage) {
-                freePage(recordIterator->page);
-            }
-
             if (recordIterator->pageId <= maxId) {
                 recordIterator->page =
-                    getPage(tableInfo, recordIterator->pageId);
+                    loadPage(tableInfo, recordIterator->pageId);
             }
         } else {
             recordIterator->slotIdx++;
@@ -330,9 +329,11 @@ int compareSlots(const void *slot1, const void *slot2) {
     if (s1->offset == s2->offset) {
         return 0;
     }
+
     if (s1->offset < s2->offset) {
         return 1;
     }
+
     return -1;
 }
 
@@ -377,7 +378,9 @@ void freeTableHeader(TableHeader tableHeader) { free(tableHeader); }
 
 static int countSlots(RecordSlot *slots) {
     int cnt = 0;
-    while (slots[cnt++].size != PAGE_TAIL);
+    while (slots[cnt].size != PAGE_TAIL) {
+        cnt++;
+    }
     return cnt;
 }
 
@@ -402,8 +405,7 @@ void modifyRecordOffsets(Page page, size_t recordStart, size_t diff) {
 }
 
 void defragmentRecords(Page page) {
-    int numSlots = countSlots(page->header->recordSlots);
-
+    int numSlots = countSlots(page->header->recordSlots->slots);
     // Sorts slots in decreasing order of offset
     // This allows records to be shifted as far right as possible without
     // overwriting existing data

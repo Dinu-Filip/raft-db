@@ -9,6 +9,11 @@
 #include "../table.h"
 
 typedef struct SlotArray *SlotArray;
+struct SlotArray {
+    RecordSlot *slots;
+    size_t size;
+    size_t capacity;
+};
 
 typedef struct PageHeader *PageHeader;
 struct PageHeader {

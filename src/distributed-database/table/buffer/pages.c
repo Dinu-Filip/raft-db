@@ -12,12 +12,6 @@
 
 #define INITIAL_NUM_SLOTS 10
 
-struct SlotArray {
-    RecordSlot *slots;
-    size_t size;
-    size_t capacity;
-};
-
 SlotArray initSlotArray() {
     SlotArray slots = malloc(sizeof(struct SlotArray));
     assert(slots != NULL);
