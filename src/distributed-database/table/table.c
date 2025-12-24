@@ -308,55 +308,6 @@ void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
     freeQueryValues(freeSpaceQueryValues);
 }
 
-static int countNumVarFields(Record record) {
-    int numVar = 0;
-    for (int i = 0; i < record->numValues; i++) {
-        Field field = record->fields[i];
-        if (field.type == VARSTR) {
-            numVar++;
-        }
-    }
-    return numVar;
-}
-
-uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
-                     uint16_t recordEnd) {
-    outputRecord(record);
-    LOG("Write record %d\n", globalIdx);
-    // Offset to start of record
-    uint16_t recordStart = recordEnd - record->size;
-    // Offset to end of record slots/start of static fields
-
-    // Counts number of variable length fields to determine number of variable
-    // field slots needed
-    int numVar = countNumVarFields(record);
-
-    uint16_t staticFieldStart =
-        recordStart + RECORD_HEADER_WIDTH + numVar * (SLOT_SIZE);
-    uint16_t slotEnd = staticFieldStart;
-
-    // Variable length fields must be at end of record
-    assert(record->numValues <= INT_MAX);
-    for (int i = record->numValues - 1; i >= 0; i--) {
-        Field field = record->fields[i];
-        recordEnd -= field.size;
-        writeField(page->ptr + recordEnd, field);
-
-        LOG("Wrote %s\n", field.attribute);
-        if (field.type == VARSTR) {
-            // Writes (pos, width) slot for each variable length field, updating
-            // start of static fields
-            slotEnd -= OFFSET_WIDTH + SIZE_WIDTH;
-            memcpy(page->ptr + slotEnd, &recordEnd, OFFSET_WIDTH);
-            memcpy(page->ptr + slotEnd + OFFSET_WIDTH, &field.size, SIZE_WIDTH);
-        }
-    }
-    // Writes offset to start of static length fields
-    memcpy(page->ptr + recordStart, &staticFieldStart, RECORD_HEADER_WIDTH);
-
-    return recordStart;
-}
-
 void outputField(Field field, unsigned int rightPadding) {
     switch (field.type) {
         case INT:

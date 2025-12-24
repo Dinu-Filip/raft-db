@@ -200,17 +200,6 @@ extern void initialiseRecordIterator(RecordIterator *iterator);
 extern void writeField(uint8_t *fieldStart, Field field);
 
 /**
- * Writes record to page starting backwards from recordEnd
- * @param page page to write record to
- * @param record record to write
- * @param globalIdx global index of record
- * @param recordEnd offset of end of record
- * @return offset to start of record
- */
-extern uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
-                            uint16_t recordEnd);
-
-/**
  * Updates table header in page
  * @param tableInfo table to update
  */

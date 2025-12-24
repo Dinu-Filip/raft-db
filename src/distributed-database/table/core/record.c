@@ -1,6 +1,7 @@
 #include "record.h"
 
 #include <assert.h>
+#include <limits.h>
 #include <string.h>
 
 #include "log.h"
@@ -187,6 +188,58 @@ Record parseRecord(Page page, size_t offset, Schema *schema) {
     }
 
     return record;
+}
+
+static int countNumVarFields(Record record) {
+    int numVar = 0;
+    for (int i = 0; i < record->numValues; i++) {
+        Field field = record->fields[i];
+        if (field.type == VARSTR) {
+            numVar++;
+        }
+    }
+    return numVar;
+}
+
+uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
+                     uint16_t recordEnd) {
+    LOG("Write record %d\n", globalIdx);
+
+    // Offset to start of record
+    uint16_t recordStart = recordEnd - record->size;
+
+    // Counts number of variable length fields to determine number of variable
+    // field slots needed
+    int numVar = countNumVarFields(record);
+
+    unsigned slotOffset = recordStart + RECORD_HEADER_WIDTH;
+    // Finds offset to start of static fields
+    unsigned staticFieldStart =
+        recordStart + RECORD_HEADER_WIDTH + numVar * SLOT_SIZE;
+
+    // Writes offset to start of static length fields
+    memcpy(page->ptr + recordStart, &staticFieldStart, RECORD_HEADER_WIDTH);
+
+    unsigned fieldOffset = staticFieldStart;
+    memcpy(page->ptr + fieldOffset, &globalIdx, GLOBAL_ID_WIDTH);
+    fieldOffset += GLOBAL_ID_WIDTH;
+
+    // Writes each field, setting (offset, size) slot for each variable length
+    // field
+    for (int i = 0; i < record->numValues; i++) {
+        Field field = record->fields[i];
+        writeField(page->ptr + fieldOffset, field);
+
+        if (field.type == VARSTR) {
+            // Writes (pos, width) slot for each variable length field, updating
+            // start of static fields
+            memcpy(page->ptr + slotOffset, &recordEnd, OFFSET_WIDTH);
+            memcpy(page->ptr + slotOffset + OFFSET_WIDTH, &field.size, SIZE_WIDTH);
+            slotOffset += SLOT_SIZE;
+        }
+    }
+
+    return recordStart;
 }
 
 Record iterateRecords(TableInfo tableInfo, Schema *schema,
