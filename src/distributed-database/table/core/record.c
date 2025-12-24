@@ -1,7 +1,6 @@
 #include "record.h"
 
 #include <assert.h>
-#include <limits.h>
 #include <string.h>
 
 #include "log.h"
@@ -91,7 +90,7 @@ Record parseQuery(Schema *schema, QueryAttributes attributes,
     }
 
     // For start of static length fields
-    recordSize += RECORD_IDX;
+    recordSize += RECORD_HEADER_WIDTH;
 
     record->size = recordSize;
 

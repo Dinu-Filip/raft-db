@@ -3,7 +3,24 @@
 
 #include "table/table.h"
 
-Record parseQuery(Schema *schema, QueryAttributes attributes, QueryValues values, uint32_t globalIdx);
+typedef struct Record *Record;
+struct Record {
+    Field *fields;
+    unsigned int numValues;
+    size_t size;
+    uint32_t globalIdx;
+};
+
+/**
+ * Parses query into internal record representation
+ * @param schema schema to parse
+ * @param attributes attributes from query
+ * @param values values from query
+ * @param globalIdx global record index
+ * @return Record containing array of fields
+ */
+extern Record parseQuery(Schema *schema, QueryAttributes attributes,
+                         QueryValues values, uint32_t globalIdx);
 
 /**
  * Parses raw bytes in file into Record
@@ -12,6 +29,17 @@ Record parseQuery(Schema *schema, QueryAttributes attributes, QueryValues values
  * @param schema schema for parsing
  */
 extern Record parseRecord(Page page, size_t offset, Schema *schema);
+
+/**
+ * Writes record to page starting backwards from recordEnd
+ * @param page page to write record to
+ * @param record record to write
+ * @param globalIdx global index of record
+ * @param recordEnd offset of end of record
+ * @return offset to start of record
+ */
+extern uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
+                            uint16_t recordEnd);
 
 /**
  * Iterates through records in database
@@ -24,14 +52,4 @@ extern Record iterateRecords(TableInfo tableInfo, Schema *schema,
                              RecordIterator *recordIterator,
                              bool autoClearPage);
 
-/**
- * Writes record to page starting backwards from recordEnd
- * @param page page to write record to
- * @param record record to write
- * @param globalIdx global index of record
- * @param recordEnd offset of end of record
- * @return offset to start of record
- */
-extern uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
-                            uint16_t recordEnd);
 #endif //RECORD_H

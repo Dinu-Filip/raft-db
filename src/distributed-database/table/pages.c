@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "core/record.h"
 #include "insert.h"
 #include "log.h"
 #include "schema.h"

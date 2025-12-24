@@ -308,6 +308,8 @@ void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
     freeQueryValues(freeSpaceQueryValues);
 }
 
+void freeRecordIterator(RecordIterator iterator) {}
+
 void outputField(Field field, unsigned int rightPadding) {
     switch (field.type) {
         case INT:
@@ -344,8 +346,6 @@ void closeTable(TableInfo tableInfo) {
     free(tableInfo->name);
     free(tableInfo);
 }
-
-void freeRecordIterator(RecordIterator iterator) {}
 
 void freeRecord(Record record) {
     for (int j = 0; j < record->numValues; j++) {

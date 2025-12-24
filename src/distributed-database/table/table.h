@@ -19,7 +19,6 @@
 #define FLOAT_WIDTH 4
 #define BOOL_WIDTH 1
 
-#define RECORD_IDX 2
 #define RECORD_HEADER_WIDTH 2
 
 #define PAGE_SIZE_IDX 0
@@ -53,6 +52,7 @@
 extern char DB_DIRECTORY[MAX_FILE_NAME_LEN];
 
 typedef struct Page *Page;
+typedef struct Record *Record;
 
 typedef enum { RELATION, SCHEMA, FREE_MAP } TableType;
 
@@ -84,14 +84,6 @@ struct Field {
         bool boolValue;
         char *stringValue;
     };
-};
-
-typedef struct Record *Record;
-struct Record {
-    Field *fields;
-    unsigned int numValues;
-    size_t size;         // Does not include record slot in page header
-    uint32_t globalIdx;  // Global index of record
 };
 
 typedef struct TableHeader *TableHeader;
@@ -161,17 +153,6 @@ extern void freeRecordArray(RecordArray records);
  * @param record record to add
  */
 extern void addRecord(RecordArray records, Record record);
-
-/**
- * Parses query into internal record representation
- * @param schema schema to parse
- * @param attributes attributes from query
- * @param values values from query
- * @param globalIdx global record index
- * @return Record containing array of fields
- */
-extern Record parseQuery(Schema *schema, QueryAttributes attributes,
-                         QueryValues values, uint32_t globalIdx);
 
 /**
  * Reads raw bytes into record slot
