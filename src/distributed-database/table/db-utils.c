@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "core/record.h"
 #include "pages.h"
 #include "table.h"
 #include "utils.h"

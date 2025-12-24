@@ -92,57 +92,6 @@ TableInfo openTable(char *tableName) {
     return tableInfo;
 }
 
-Record iterateRecords(TableInfo tableInfo, Schema *schema,
-                      RecordIterator *recordIterator, bool autoClearPage) {
-    if (tableInfo->header->numPages == 0) {
-        return NULL;
-    }
-
-    // Sets iterator fields at start of iteration
-    if (recordIterator->page == NULL) {
-        recordIterator->pageId = tableInfo->header->startPage;
-        recordIterator->page = getPage(tableInfo, recordIterator->pageId);
-        recordIterator->slotIdx = 0;
-    }
-
-    // Stores id of last page stored in memory
-    const size_t maxId =
-        tableInfo->header->numPages + tableInfo->header->startPage - 1;
-
-    while (recordIterator->pageId <= maxId) {
-        RecordSlot *nextSlot =
-            &recordIterator->page->header->recordSlots[recordIterator->slotIdx];
-
-        // Iterates over empty slots
-        while (nextSlot->size == 0) {
-            recordIterator->slotIdx++;
-            nextSlot = &recordIterator->page->header
-                            ->recordSlots[recordIterator->slotIdx];
-        }
-
-        // If end of slot array encountered, moves to next page as long as
-        // max page not exceeded
-        if (nextSlot->size == PAGE_TAIL) {
-            recordIterator->pageId++;
-            recordIterator->slotIdx = 0;
-
-            if (autoClearPage) {
-                freePage(recordIterator->page);
-            }
-
-            if (recordIterator->pageId <= maxId) {
-                recordIterator->page =
-                    getPage(tableInfo, recordIterator->pageId);
-            }
-        } else {
-            recordIterator->slotIdx++;
-            recordIterator->lastSlot = nextSlot;
-            return parseRecord(recordIterator->page, nextSlot->offset, schema);
-        }
-    }
-    return NULL;
-}
-
 void getRecordSlot(RecordSlot *slot, uint8_t *idx) {
     memcpy(&slot->offset, idx, OFFSET_WIDTH);
     memcpy(&slot->size, idx + OFFSET_WIDTH, SIZE_WIDTH);

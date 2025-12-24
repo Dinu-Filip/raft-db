@@ -187,17 +187,6 @@ extern void getRecordSlot(RecordSlot *slot, uint8_t *idx);
 extern void defragmentRecords(Page page);
 
 /**
- * Iterates through records in database
- * @param tableInfo table to iterate through
- * @param schema schema for parsing
- * @param recordIterator
- * @param autoClearPage determines whether to free page once exited
- */
-extern Record iterateRecords(TableInfo tableInfo, Schema *schema,
-                             RecordIterator *recordIterator,
-                             bool autoClearPage);
-
-/**
  * Initialises fields of record iterator
  * @param iterator
  */

@@ -188,3 +188,51 @@ Record parseRecord(Page page, size_t offset, Schema *schema) {
 
     return record;
 }
+
+Record iterateRecords(TableInfo tableInfo, Schema *schema,
+                      RecordIterator *recordIterator, bool autoClearPage) {
+    // Checks if database is empty
+    if (tableInfo->header->numPages == 0) {
+        return NULL;
+    }
+
+    // Sets iterator fields at start of iteration
+    if (recordIterator->page == NULL) {
+        recordIterator->page = getPage(tableInfo, recordIterator->pageId);
+        recordIterator->slotIdx = 0;
+    }
+
+    // Stores id of last page stored in memory
+    const size_t maxId = tableInfo->header->numPages;
+
+    while (recordIterator->pageId <= maxId) {
+        // Reads next record slot
+        RecordSlot *nextSlot =
+            &recordIterator->page->header->recordSlots[recordIterator->slotIdx];
+
+        // If end of slot array encountered, moves to next page
+        if (nextSlot->size == PAGE_TAIL) {
+            recordIterator->pageId++;
+            recordIterator->slotIdx = 0;
+
+            // Frees previous page if not used elsewhere
+            if (autoClearPage) {
+                freePage(recordIterator->page);
+            }
+
+            continue;
+        }
+
+        // Skips over empty slot
+        if (nextSlot->size == 0) {
+            recordIterator->slotIdx++;
+            continue;
+        }
+
+        recordIterator->slotIdx++;
+        recordIterator->lastSlot = nextSlot;
+        return parseRecord(recordIterator->page, nextSlot->offset, schema);
+    }
+
+    return NULL;
+}

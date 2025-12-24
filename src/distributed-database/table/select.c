@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "conditions.h"
+#include "core/record.h"
 #include "log.h"
 #include "table.h"
 

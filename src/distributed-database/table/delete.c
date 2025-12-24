@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "conditions.h"
+#include "core/record.h"
 #include "pages.h"
 #include "table/operation.h"
 #include "table/table.h"

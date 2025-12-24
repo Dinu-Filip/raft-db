@@ -7,6 +7,8 @@
 
 #include "table.h"
 
+#define START_PAGE 1
+
 typedef struct PageHeader *PageHeader;
 struct PageHeader {
     bool modified;
