@@ -76,9 +76,10 @@ typedef struct Field Field;
 struct Field {
     char *attribute;
     AttributeType type;
-    int size;
+    unsigned size;
     union {
         int32_t intValue;
+        uint32_t uintValue;
         float floatValue;
         bool boolValue;
         char *stringValue;

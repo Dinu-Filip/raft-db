@@ -3,10 +3,10 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "db-utils.h"
 #include "log.h"
 #include "pages.h"
 #include "table/table.h"
+#include "core/record.h"
 
 void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
     LOG("Update page header insert\n");
@@ -53,7 +53,6 @@ void insertInto(TableInfo tableInfo, TableInfo spaceMap, Schema *schema,
     // Assumed no null or missing values
     Record record =
         parseQuery(schema, attributes, values, tableInfo->header->globalIdx);
-
     outputRecord(record);
     insertRecord(tableInfo, spaceMap, schema, record, type);
     freeRecord(record);
