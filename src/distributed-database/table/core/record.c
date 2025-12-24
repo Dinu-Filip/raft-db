@@ -4,6 +4,19 @@
 #include <string.h>
 
 #include "log.h"
+#include "table/pages.h"
+
+static Record initialiseRecord(unsigned numAttributes) {
+    Record record = malloc(sizeof(struct Record));
+    assert(record != NULL);
+
+    // Allocates array of fields of record
+    record->fields = malloc(sizeof(Field) * numAttributes);
+    assert(record->fields != NULL);
+
+    record->numValues = numAttributes;
+    return record;
+}
 
 static void parseQueryValueToField(Field *field, Operand attributeValue,
                                    AttributeName attributeName,
@@ -34,38 +47,21 @@ static void parseQueryValueToField(Field *field, Operand attributeValue,
     }
 }
 
-static void setGlobalIdx(Record record, uint32_t globalIdx) {
-    assert(record->fields != NULL);
-
-    record->fields[GLOBAL_ID_RECORD_IDX].attribute = strdup(GLOBAL_ID_NAME);
-    record->fields[GLOBAL_ID_RECORD_IDX].type = INT;
-
-    assert(globalIdx <= INT32_MAX);
-    record->fields[GLOBAL_ID_RECORD_IDX].uintValue = globalIdx;
-    record->fields[GLOBAL_ID_RECORD_IDX].size = GLOBAL_ID_WIDTH;
-}
-
 Record parseQuery(Schema *schema, QueryAttributes attributes,
                   QueryValues values, uint32_t globalIdx) {
     // Parses query into internal representation
 
     LOG("PARSE QUERY\n");
-    Record record = malloc(sizeof(struct Record));
-    assert(record != NULL);
-
-    // Allocates array of fields of record
-    record->fields = malloc(sizeof(Field) * (schema->numAttributes + 1));
-    assert(record->fields != NULL);
+    Record record = initialiseRecord(schema->numAttributes);
 
     // Computes the size of the record data in bytes
     unsigned recordSize = 0;
 
     // Sets global index and adds to record size
-    setGlobalIdx(record, globalIdx);
+    record->globalIdx = globalIdx;
     recordSize += GLOBAL_ID_WIDTH;
 
     // Iterates over query, matching schema to attributes
-    record->globalIdx = globalIdx;
     for (int j = 0; j < schema->numAttributes; j++) {
         for (int i = 0; i < attributes->numAttributes; i++) {
             AttributeName attributeName = attributes->attributes[i];
@@ -102,5 +98,93 @@ Record parseQuery(Schema *schema, QueryAttributes attributes,
     record->numValues = attributes->numAttributes + 1;
 
     LOG("RECORD PARSE SUCCESSFUL");
+    return record;
+}
+
+static void parseField(Field *field, char *attribute, AttributeType type,
+                uint16_t size, uint8_t *record) {
+    // Parses field from raw binary
+
+    field->attribute = strdup(attribute);
+    field->size = size;
+    field->type = type;
+
+    switch (type) {
+        case INT:
+            memcpy(&field->intValue, record, field->size);
+            break;
+        case STR:
+            field->stringValue = malloc(sizeof(char) * (field->size + 1));
+            assert(field->stringValue != NULL);
+            memcpy(field->stringValue, record, field->size);
+            field->stringValue[field->size] = '\0';
+            break;
+        case VARSTR:
+            field->stringValue = malloc(sizeof(char) * (field->size + 1));
+            assert(field->stringValue != NULL);
+            memcpy(field->stringValue, record, field->size);
+            field->stringValue[field->size] = '\0';
+            break;
+        case FLOAT:
+            memcpy(&field->floatValue, record, field->size);
+            break;
+        case BOOL:
+            memcpy(&field->boolValue, record, field->size);
+            break;
+    }
+}
+
+Record parseRecord(Page page, size_t offset, Schema *schema) {
+    Record record = initialiseRecord(schema->numAttributes);
+
+    Field *fields = record->fields;
+    record->size = 0;
+
+    // Read offset to start of static fields
+    uint16_t staticFieldStart;
+    memcpy(&staticFieldStart, page->ptr + offset, RECORD_HEADER_WIDTH);
+    uint8_t *recordStart = page->ptr + staticFieldStart;
+
+    // Reads the global index
+    memcpy(&record->globalIdx, recordStart, GLOBAL_ID_WIDTH);
+    recordStart += GLOBAL_ID_WIDTH;
+
+    record->size += GLOBAL_ID_WIDTH;
+    record->size += RECORD_HEADER_WIDTH;
+
+    // Stores pointer to start of variable-length field slots
+    uint8_t *slotsStart = page->ptr + offset + RECORD_HEADER_WIDTH;
+    RecordSlot slot;
+
+    // Reads each attribute from record using schema
+    for (int i = 0; i < schema->numAttributes; i++) {
+        char *attribute = schema->attributes[i];
+        AttributeType type = schema->attributeTypes[i];
+        if (type == VARSTR) {
+            // Retrieves slot for variable-length field
+            getRecordSlot(&slot, slotsStart);
+
+            // Moves to next slot
+            slotsStart += SLOT_SIZE;
+
+            // Parse variable length field using slot offset and size
+            parseField(fields + i, attribute, type, slot.size,
+                       page->ptr + slot.offset);
+
+            // Adds size of slot to variable length field to total record size
+            record->size += SLOT_SIZE;
+        } else {
+            unsigned size = schema->attributeSizes[i];
+
+            // Parses field from record
+            parseField(fields + i, attribute, type, size, recordStart);
+
+            recordStart += size;
+        }
+
+        // Adds size of parsed field
+        record->size += fields[i].size;
+    }
+
     return record;
 }

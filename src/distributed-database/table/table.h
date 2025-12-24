@@ -174,25 +174,6 @@ extern Record parseQuery(Schema *schema, QueryAttributes attributes,
                          QueryValues values, uint32_t globalIdx);
 
 /**
- * Parses type and value into Field
- * @param field pointer to field
- * @param attribute name of attribute
- * @param type type of value
- * @param size width of value
- * @param record pointer to raw record
- */
-extern void parseField(Field *field, char *attribute, AttributeType type,
-                       uint16_t size, uint8_t *record);
-
-/**
- * Parses raw bytes in file into Record
- * @param page page to read from
- * @param offset offset to record
- * @param schema schema for parsing
- */
-extern Record parseRecord(Page page, size_t offset, Schema *schema);
-
-/**
  * Reads raw bytes into record slot
  * @param slot pointer to slot
  * @param idx pointer to raw slot

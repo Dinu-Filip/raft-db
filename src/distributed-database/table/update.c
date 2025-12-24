@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "conditions.h"
+#include "core/record.h"
 #include "db-utils.h"
 #include "delete.h"
 #include "insert.h"

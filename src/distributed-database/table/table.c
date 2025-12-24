@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "core/record.h"
 #include "db-utils.h"
 #include "log.h"
 #include "pages.h"
@@ -35,7 +36,6 @@ void freeTable(TableInfo tableInfo) {
     free(tableInfo->header);
     free(tableInfo);
 }
-
 
 RecordArray createRecordArray() {
     RecordArray recordArray = malloc(sizeof(struct RecordArray));
@@ -90,89 +90,6 @@ TableInfo openTable(char *tableName) {
 
     LOG("Got table\n");
     return tableInfo;
-}
-
-void parseField(Field *field, char *attribute, AttributeType type,
-                uint16_t size, uint8_t *record) {
-    // Parses field from raw binary
-
-    field->attribute = strdup(attribute);
-    field->size = size;
-    field->type = type;
-    switch (type) {
-        case INT:
-            field->intValue = 0;
-            memcpy(&field->intValue, record, field->size);
-            break;
-        case STR:
-            field->stringValue = malloc(sizeof(char) * (field->size + 1));
-            assert(field->stringValue != NULL);
-            memcpy(field->stringValue, record, field->size);
-            field->stringValue[field->size] = '\0';
-            break;
-        case VARSTR:
-            field->stringValue = malloc(sizeof(char) * (field->size + 1));
-            assert(field->stringValue != NULL);
-            memcpy(field->stringValue, record, field->size);
-            field->stringValue[field->size] = '\0';
-            break;
-        case FLOAT:
-            field->floatValue = 0;
-            memcpy(&field->floatValue, record, field->size);
-            break;
-        case BOOL:
-            memcpy(&field->boolValue, record, field->size);
-            break;
-    }
-}
-
-Record parseRecord(Page page, size_t offset, Schema *schema) {
-    Record record = malloc(sizeof(struct Record));
-    assert(record != NULL);
-
-    Field *fields = malloc(sizeof(struct Field) * (schema->numAttributes + 1));
-    assert(fields != NULL);
-
-    record->fields = fields;
-    record->numValues = schema->numAttributes + 1;
-    record->size = 0;
-
-    // Stores offset to start of static fields
-    uint16_t staticFieldStart;
-    memcpy(&staticFieldStart, page->ptr + offset, RECORD_HEADER_WIDTH);
-    uint8_t *recordStart = page->ptr + staticFieldStart;
-
-    // Stores offset to start of variable-length field slots
-    uint8_t *slotsStart = page->ptr + offset + RECORD_HEADER_WIDTH;
-    RecordSlot slot;
-
-    parseField(fields, GLOBAL_ID_NAME, INT, GLOBAL_ID_WIDTH, recordStart);
-    record->globalIdx = fields[0].intValue;
-    recordStart += GLOBAL_ID_WIDTH;
-
-    record->size += GLOBAL_ID_WIDTH;
-    record->size += RECORD_HEADER_WIDTH;
-
-    for (int i = 0; i < schema->numAttributes; i++) {
-        char *attribute = schema->attributes[i];
-        AttributeType type = schema->attributeTypes[i];
-        if (type == VARSTR) {
-            getRecordSlot(&slot, slotsStart);
-            slotsStart += SLOT_SIZE;
-            parseField(fields + i + 1, attribute, type, slot.size,
-                       page->ptr + slot.offset);
-
-            // Adds size of slot to variable length field to total record size
-            record->size += SLOT_SIZE;
-        } else {
-            unsigned int size = schema->attributeSizes[i];
-            parseField(fields + i + 1, attribute, type, size, recordStart);
-            recordStart += size;
-        }
-        record->size += fields[i + 1].size;
-    }
-
-    return record;
 }
 
 Record iterateRecords(TableInfo tableInfo, Schema *schema,
