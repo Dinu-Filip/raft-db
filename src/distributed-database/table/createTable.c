@@ -62,7 +62,7 @@ static void setSchema(char *schema, char *tableName, QueryAttributes attributes,
 
     // Inserts non-variable length fields with index
     for (int i = 0; i < attributes->numAttributes; i++) {
-        Attribute attribute = attributes->attributes[i];
+        AttributeName attribute = attributes->attributes[i];
         if (types->types[i] != VARSTR) {
             idxOp->value.intOp = idx;
             typeOp->value.intOp = types->types[i];
@@ -83,7 +83,7 @@ static void setSchema(char *schema, char *tableName, QueryAttributes attributes,
 
     // Inserts variable length fields
     for (int i = 0; i < attributes->numAttributes; i++) {
-        Attribute attribute = attributes->attributes[i];
+        AttributeName attribute = attributes->attributes[i];
         if (types->types[i] == VARSTR) {
             typeOp->value.intOp = types->types[i];
             idxOp->value.intOp = idx;

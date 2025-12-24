@@ -9,13 +9,13 @@
 #include "select.h"
 #include "table/table.h"
 
-Attribute schemaAttributes[NUM_SCHEMA_ATTRIBUTES] = {
+AttributeName schemaAttributes[NUM_SCHEMA_ATTRIBUTES] = {
     SCHEMA_RELATION_NAME, SCHEMA_ATTRIBUTE_TYPE, SCHEMA_IDX,
     SCHEMA_ATTRIBUTE_SIZE, SCHEMA_ATTRIBUTE_NAME};
 AttributeType schemaTypes[NUM_SCHEMA_ATTRIBUTES] = {STR, INT, INT, INT, VARSTR};
 unsigned int schemaSize[NUM_SCHEMA_ATTRIBUTES] = {
     MAX_RELATION_NAME, INT_WIDTH, INT_WIDTH, INT_WIDTH, MAX_ATTRIBUTE_NAME};
-Attribute spaceInfoAttributes[NUM_SPACE_INFO_ATTRIBUTES] = {
+AttributeName spaceInfoAttributes[NUM_SPACE_INFO_ATTRIBUTES] = {
     SPACE_INFO_RELATION, SPACE_INFO_ID, SPACE_INFO_FREE_SPACE};
 AttributeType spaceInfoTypes[NUM_SPACE_INFO_ATTRIBUTES] = {STR, INT, INT};
 unsigned int spaceInfoSizes[NUM_SPACE_INFO_ATTRIBUTES] = {MAX_RELATION_NAME,
@@ -41,7 +41,7 @@ QueryAttributes initSchemaQueryAttributes() {
     QueryAttributes queryAttributes = malloc(sizeof(struct QueryAttributes));
     assert(queryAttributes != NULL);
 
-    Attribute schemaAttributes[] = {SCHEMA_RELATION_NAME, SCHEMA_ATTRIBUTE_TYPE,
+    AttributeName schemaAttributes[] = {SCHEMA_RELATION_NAME, SCHEMA_ATTRIBUTE_TYPE,
                                     SCHEMA_IDX, SCHEMA_ATTRIBUTE_SIZE,
                                     SCHEMA_ATTRIBUTE_NAME};
 
@@ -96,7 +96,7 @@ Schema *getSchema(TableInfo schemaInfo, char *tableName) {
     // Creates select operation to get records from schema table
     struct Condition condition;
     condition.type = EQUALS;
-    Attribute relationName = SCHEMA_RELATION_NAME;
+    AttributeName relationName = SCHEMA_RELATION_NAME;
     condition.value.twoArg.op1 = relationName;
     condition.value.twoArg.op2 = createOperand(STR, tableName);
 

@@ -21,7 +21,7 @@ typedef enum {
     NOT
 } ConditionType;
 
-typedef char *Attribute;
+typedef char *AttributeName;
 typedef struct QueryResult *QueryResult;
 
 typedef struct Operand *Operand;
@@ -43,7 +43,7 @@ struct QueryValues {
 
 typedef struct QueryAttributes *QueryAttributes;
 struct QueryAttributes {
-    Attribute *attributes;
+    AttributeName *attributes;
     uint16_t numAttributes;
 };
 
@@ -60,14 +60,14 @@ struct Condition {
     uint8_t type;
     union {
         struct {
-            Attribute op1;
+            AttributeName op1;
         } oneArg;
         struct {
-            Attribute op1;
+            AttributeName op1;
             Operand op2;
         } twoArg;
         struct {
-            Attribute op1;
+            AttributeName op1;
             Operand op2;
             Operand op3;
         } between;

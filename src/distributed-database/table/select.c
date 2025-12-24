@@ -18,7 +18,7 @@ static void filterRecord(Record record, QueryAttributes attributes) {
     for (int j = 0; j < record->numValues; j++) {
         bool added = false;
         for (int i = 0; i < attributes->numAttributes; i++) {
-            Attribute attribute = attributes->attributes[i];
+            AttributeName attribute = attributes->attributes[i];
 
             // Finds corresponding field in record and places in correct
             // position

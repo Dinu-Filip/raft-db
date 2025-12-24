@@ -33,16 +33,16 @@ typedef struct TableInfo *TableInfo;
 
 typedef struct Schema Schema;
 struct Schema {
-    Attribute *attributes;
+    AttributeName *attributes;
     AttributeType *attributeTypes;
     unsigned int *attributeSizes;
     int numAttributes;
 };
 
-extern Attribute schemaAttributes[5];
+extern AttributeName schemaAttributes[5];
 extern AttributeType schemaTypes[5];
 extern unsigned int schemaSize[5];
-extern Attribute spaceInfoAttributes[3];
+extern AttributeName spaceInfoAttributes[3];
 extern AttributeType spaceInfoTypes[3];
 extern unsigned int spaceInfoSizes[3];
 

@@ -95,13 +95,13 @@ QueryAttributes createQueryAttributes(size_t numAttributes, ...) {
     QueryAttributes queryAttributes = malloc(sizeof(struct QueryAttributes));
     assert(queryAttributes != NULL);
 
-    queryAttributes->attributes = malloc(sizeof(Attribute) * numAttributes);
+    queryAttributes->attributes = malloc(sizeof(AttributeName) * numAttributes);
     assert(queryAttributes->attributes != NULL);
 
     va_list attributes;
     va_start(attributes, numAttributes);
     for (size_t i = 0; i < numAttributes; i++) {
-        queryAttributes->attributes[i] = va_arg(attributes, Attribute);
+        queryAttributes->attributes[i] = va_arg(attributes, AttributeName);
     }
     va_end(attributes);
     queryAttributes->numAttributes = numAttributes;

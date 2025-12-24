@@ -117,8 +117,8 @@ void assertOperationEquals(Operation a, Operation b) {
 static QueryAttributes makeQueryAttributes(const char *attrs[], int numAttrs) {
     QueryAttributes res = malloc(sizeof(struct QueryAttributes));
     res->numAttributes = numAttrs;
-    res->attributes = malloc(numAttrs * sizeof(Attribute));
-    memcpy(res->attributes, attrs, numAttrs * sizeof(Attribute));
+    res->attributes = malloc(numAttrs * sizeof(AttributeName));
+    memcpy(res->attributes, attrs, numAttrs * sizeof(AttributeName));
     return res;
 }
 
@@ -158,7 +158,7 @@ static QueryValues makeQueryValues(const Operand *ops, int numOps) {
     return res;
 }
 
-static Condition makeOneArgCondition(QueryType type, Attribute attr) {
+static Condition makeOneArgCondition(QueryType type, AttributeName attr) {
     Condition res = malloc(sizeof(struct Condition));
     res->type = type;
     res->value.oneArg.op1 = attr;

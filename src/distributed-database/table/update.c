@@ -61,7 +61,7 @@ static void updateRecord(TableInfo tableInfo, Schema *schema,
     for (int j = 0; j < record->numValues; j++) {
         // Only updates fields specified in attributes list
         for (int i = 0; i < queryAttributes->numAttributes; i++) {
-            Attribute attribute = queryAttributes->attributes[i];
+            AttributeName attribute = queryAttributes->attributes[i];
             Field *field = &record->fields[j];
             if (strcmp(field->attribute, attribute) == 0) {
                 int oldFieldSize = field->size;

@@ -50,7 +50,7 @@ static bool evaluateTwoArg(ConditionType type, Field field, Operand value) {
 }
 
 bool evaluate(Record record, Condition condition) {
-    Attribute attribute;
+    AttributeName attribute;
     if (condition->type == BETWEEN) {
         attribute = condition->value.between.op1;
     } else {

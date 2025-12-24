@@ -29,7 +29,7 @@ static QueryAttributes parseQueryAttributes(cJSON *operationJson) {
     assert(attrs != NULL);
 
     attrs->numAttributes = attributesLength;
-    attrs->attributes = malloc(sizeof(Attribute) * attrs->numAttributes);
+    attrs->attributes = malloc(sizeof(AttributeName) * attrs->numAttributes);
     assert(attrs->attributes != NULL);
 
     cJSON *attr;

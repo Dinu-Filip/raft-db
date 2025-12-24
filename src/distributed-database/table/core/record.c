@@ -6,7 +6,7 @@
 #include "log.h"
 
 static void parseQueryValueToField(Field *field, Operand attributeValue,
-                                   Attribute attributeName,
+                                   AttributeName attributeName,
                                    AttributeType type, unsigned size) {
     field->attribute = strdup(attributeName);
     field->type = type;
@@ -68,7 +68,7 @@ Record parseQuery(Schema *schema, QueryAttributes attributes,
     record->globalIdx = globalIdx;
     for (int j = 0; j < schema->numAttributes; j++) {
         for (int i = 0; i < attributes->numAttributes; i++) {
-            Attribute attributeName = attributes->attributes[i];
+            AttributeName attributeName = attributes->attributes[i];
 
             // Skips if attribute names do not match
             if (strcmp(schema->attributes[j], attributeName) != 0) {

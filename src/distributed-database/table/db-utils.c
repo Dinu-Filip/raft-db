@@ -30,7 +30,7 @@ void displayTable(char *tableName) {
         // Skips global idx
         for (int i = 1; i < record->numValues; i++) {
             Field field = record->fields[i];
-            Attribute attribute = schema->attributes[i - 1];
+            AttributeName attribute = schema->attributes[i - 1];
             printf(" ");
             outputField(field, MAX((int)strlen(attribute),
                                    schema->attributeSizes[i - 1]));
@@ -50,7 +50,7 @@ void outputTableSchema(Schema *schema) {
     printf("|");
 
     for (int i = 0; i < schema->numAttributes; i++) {
-        Attribute attribute = schema->attributes[i];
+        AttributeName attribute = schema->attributes[i];
         printf(" ");
         printf("%-*s", MAX(schema->attributeSizes[i], (int)strlen(attribute)),
                schema->attributes[i]);
@@ -155,7 +155,7 @@ void extendedDisplayTable(char *tableName, TableType tableType) {
         printf("|");
         for (int i = 1; i < record->numValues; i++) {
             Field field = record->fields[i];
-            Attribute attribute = schema->attributes[i - 1];
+            AttributeName attribute = schema->attributes[i - 1];
             printf(" ");
             outputDisplayField(field, MAX((int)strlen(attribute),
                                           schema->attributeSizes[i - 1]));
