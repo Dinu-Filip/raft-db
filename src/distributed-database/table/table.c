@@ -271,9 +271,8 @@ void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
     freeQueryValues(freeSpaceQueryValues);
 }
 
-void freeRecordIterator(RecordIterator iterator) {}
 
-void outputField(Field field, unsigned int rightPadding) {
+void outputField(Field field, unsigned rightPadding) {
     switch (field.type) {
         case INT:
             fprintf(stderr, "%-*d", rightPadding, field.intValue);
@@ -293,32 +292,11 @@ void outputField(Field field, unsigned int rightPadding) {
     }
 }
 
-void outputRecord(Record record) {
-    for (int i = 0; i < record->numValues; i++) {
-        Field field = record->fields[i];
-        fprintf(stderr, "%s has type %d, size %d and value ", field.attribute,
-                field.type, field.size);
-        outputField(field, 0);
-        fprintf(stderr, "\n");
-    }
-}
-
 void closeTable(TableInfo tableInfo) {
     fclose(tableInfo->table);
     free(tableInfo->header);
     free(tableInfo->name);
     free(tableInfo);
-}
-
-void freeRecord(Record record) {
-    for (int j = 0; j < record->numValues; j++) {
-        if (record->fields[j].type == VARSTR || record->fields[j].type == STR) {
-            free(record->fields[j].stringValue);
-        }
-        free(record->fields[j].attribute);
-    }
-    free(record->fields);
-    free(record);
 }
 
 void freeField(Field field) {

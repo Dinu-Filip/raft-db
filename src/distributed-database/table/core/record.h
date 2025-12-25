@@ -20,6 +20,12 @@ struct RecordIterator {
 };
 
 /**
+ * Frees record and fields
+ * @param record
+ */
+extern void freeRecord(Record record);
+
+/**
  * Parses query into internal record representation
  * @param schema schema to parse
  * @param attributes attributes from query
@@ -59,5 +65,18 @@ extern uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
 extern Record iterateRecords(TableInfo tableInfo, Schema *schema,
                              RecordIterator recordIterator,
                              bool autoClearPage);
+
+/**
+ * Frees record iterator
+ * @param iterator
+ */
+extern void freeRecordIterator(RecordIterator iterator);
+
+/**
+ * Outputs fields of records
+ * @param record
+ */
+extern void outputRecord(Record record);
+
 
 #endif //RECORD_H

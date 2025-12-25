@@ -18,6 +18,17 @@ static Record initialiseRecord(unsigned numAttributes) {
     return record;
 }
 
+void freeRecord(Record record) {
+    for (int j = 0; j < record->numValues; j++) {
+        if (record->fields[j].type == VARSTR || record->fields[j].type == STR) {
+            free(record->fields[j].stringValue);
+        }
+        free(record->fields[j].attribute);
+    }
+    free(record->fields);
+    free(record);
+}
+
 static void parseQueryValueToField(Field *field, Operand attributeValue,
                                    AttributeName attributeName,
                                    AttributeType type, unsigned size) {
@@ -287,4 +298,16 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
     }
 
     return NULL;
+}
+
+void freeRecordIterator(RecordIterator iterator) {}
+
+void outputRecord(Record record) {
+    for (int i = 0; i < record->numValues; i++) {
+        Field field = record->fields[i];
+        fprintf(stderr, "%s has type %d, size %d and value ", field.attribute,
+                field.type, field.size);
+        outputField(field, 0);
+        fprintf(stderr, "\n");
+    }
 }

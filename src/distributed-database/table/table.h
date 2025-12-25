@@ -172,11 +172,6 @@ extern int getStaticTypeWidth(AttributeType type);
  */
 extern int compareSlots(const void *slot1, const void *slot2);
 
-/**
- * Outputs fields of records
- * @param record
- */
-extern void outputRecord(Record record);
 extern void outputField(Field field, unsigned int rightPadding);
 
 /**
@@ -184,18 +179,6 @@ extern void outputField(Field field, unsigned int rightPadding);
  * @param tableInfo
  */
 extern void closeTable(TableInfo tableInfo);
-
-/**
- * Frees record iterator
- * @param iterator
- */
-extern void freeRecordIterator(RecordIterator iterator);
-
-/**
- * Frees record and fields
- * @param record
- */
-extern void freeRecord(Record record);
 
 /**
  * Frees attribute and value of field (for VARSTR and STR)
