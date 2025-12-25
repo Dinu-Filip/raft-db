@@ -57,7 +57,7 @@ static void updateField(Field *field, Operand op) {
 static void updateRecord(TableInfo tableInfo, Schema *schema,
                          TableInfo spaceMap, Record record, Page page,
                          QueryAttributes queryAttributes,
-                         QueryValues queryValues, RecordIterator *iterator) {
+                         QueryValues queryValues, RecordIterator iterator) {
     size_t oldSize = record->size;
     for (int j = 0; j < record->numValues; j++) {
         // Only updates fields specified in attributes list
@@ -116,7 +116,7 @@ static void updateRecord(TableInfo tableInfo, Schema *schema,
 void updateTable(TableInfo tableInfo, TableInfo spaceMap,
                  QueryAttributes queryAttributes, QueryValues queryValues,
                  Condition cond, Schema *schema) {
-    RecordIterator iterator;
+    struct RecordIterator iterator;
     initialiseRecordIterator(&iterator);
 
     // Iterates through records, updating those that satisfy condition
@@ -130,7 +130,7 @@ void updateTable(TableInfo tableInfo, TableInfo spaceMap,
         freeRecord(record);
         record = iterateRecords(tableInfo, schema, &iterator, true);
     }
-    freeRecordIterator(iterator);
+    freeRecordIterator(&iterator);
 }
 
 void updateOperation(TableInfo table, TableInfo spaceMap, Schema *schema,

@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "core/record.h"
+#include "core/recordArray.h"
 #include "insert.h"
 #include "log.h"
 #include "schema.h"

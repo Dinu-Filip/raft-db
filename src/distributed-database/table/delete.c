@@ -21,7 +21,7 @@ static void removeRecord(char *tableName, TableInfo spaceMap, Page page,
 
 void deleteFrom(TableInfo table, TableInfo spaceMap, Schema *schema,
                 Condition condition) {
-    RecordIterator iterator;
+    struct RecordIterator iterator;
     initialiseRecordIterator(&iterator);
 
     Record record = iterateRecords(table, schema, &iterator, false);
@@ -44,7 +44,7 @@ void deleteFrom(TableInfo table, TableInfo spaceMap, Schema *schema,
     }
 
     updateTableHeader(table);
-    freeRecordIterator(iterator);
+    freeRecordIterator(&iterator);
 }
 
 void deleteOperation(TableInfo table, TableInfo spaceMap, Schema *schema,

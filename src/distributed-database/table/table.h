@@ -53,6 +53,8 @@ extern char DB_DIRECTORY[MAX_FILE_NAME_LEN];
 
 typedef struct Page *Page;
 typedef struct Record *Record;
+typedef struct RecordIterator *RecordIterator;
+typedef struct RecordArray *RecordArray;
 
 typedef enum { RELATION, SCHEMA, FREE_MAP } TableType;
 
@@ -102,21 +104,6 @@ struct TableInfo {
     char *name;
 };
 
-typedef struct RecordArray *RecordArray;
-struct RecordArray {
-    Record *records;
-    int size;
-    int capacity;
-};
-
-typedef struct RecordIterator RecordIterator;
-struct RecordIterator {
-    size_t pageId;
-    int slotIdx;
-    Page page;
-    RecordSlot *lastSlot;
-};
-
 typedef struct QueryResult *QueryResult;
 struct QueryResult {
     RecordArray records;
@@ -137,24 +124,6 @@ extern TableInfo openTable(char *tableName);
 extern TableHeader getTableHeader(FILE *table);
 
 /**
- * Creates resizing record array
- */
-extern RecordArray createRecordArray();
-
-/**
- * Frees resizing record array
- * @param records
- */
-extern void freeRecordArray(RecordArray records);
-
-/**
- * Adds record to resizing record array
- * @param records array of records
- * @param record record to add
- */
-extern void addRecord(RecordArray records, Record record);
-
-/**
  * Reads raw bytes into record slot
  * @param slot pointer to slot
  * @param idx pointer to raw slot
@@ -171,7 +140,7 @@ extern void defragmentRecords(Page page);
  * Initialises fields of record iterator
  * @param iterator
  */
-extern void initialiseRecordIterator(RecordIterator *iterator);
+extern void initialiseRecordIterator(RecordIterator iterator);
 
 /**
  * Writes field to page

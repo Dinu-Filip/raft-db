@@ -11,6 +11,14 @@ struct Record {
     uint32_t globalIdx;
 };
 
+typedef struct RecordIterator *RecordIterator;
+struct RecordIterator {
+    size_t pageId;
+    int slotIdx;
+    Page page;
+    RecordSlot *lastSlot;
+};
+
 /**
  * Parses query into internal record representation
  * @param schema schema to parse
@@ -49,7 +57,7 @@ extern uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
  * @param autoClearPage determines whether to free page once exited
  */
 extern Record iterateRecords(TableInfo tableInfo, Schema *schema,
-                             RecordIterator *recordIterator,
+                             RecordIterator recordIterator,
                              bool autoClearPage);
 
 #endif //RECORD_H

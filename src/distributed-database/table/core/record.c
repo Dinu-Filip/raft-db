@@ -242,7 +242,7 @@ uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
 }
 
 Record iterateRecords(TableInfo tableInfo, Schema *schema,
-                      RecordIterator *recordIterator, bool autoClearPage) {
+                      RecordIterator recordIterator, bool autoClearPage) {
     // Checks if database is empty
     if (tableInfo->header->numPages == 0) {
         return NULL;

@@ -7,6 +7,7 @@
 
 #include "log.h"
 #include "table/core/record.h"
+#include "table/core/recordArray.h"
 #include "table/table.h"
 
 static int getJsonArrayLength(cJSON *array) {

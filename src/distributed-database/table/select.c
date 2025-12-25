@@ -6,6 +6,7 @@
 
 #include "conditions.h"
 #include "core/record.h"
+#include "core/recordArray.h"
 #include "log.h"
 #include "table.h"
 
@@ -54,7 +55,7 @@ QueryResult selectFrom(TableInfo tableInfo, Schema *schema, Condition cond,
 
     result->records = recordArray;
 
-    RecordIterator iterator;
+    struct RecordIterator iterator;
     initialiseRecordIterator(&iterator);
 
     Record record = iterateRecords(tableInfo, schema, &iterator, true);
@@ -71,7 +72,7 @@ QueryResult selectFrom(TableInfo tableInfo, Schema *schema, Condition cond,
         record = iterateRecords(tableInfo, schema, &iterator, true);
     }
 
-    freeRecordIterator(iterator);
+    freeRecordIterator(&iterator);
     return result;
 }
 

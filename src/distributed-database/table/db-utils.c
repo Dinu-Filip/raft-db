@@ -19,7 +19,7 @@ void displayTable(char *tableName) {
 
     Schema *schema = getSchema(schemaInfo, tableName);
 
-    RecordIterator iterator;
+    struct RecordIterator iterator;
     initialiseRecordIterator(&iterator);
 
     Record record = iterateRecords(relationInfo, schema, &iterator, true);
@@ -136,7 +136,7 @@ void extendedDisplayTable(char *tableName, TableType tableType) {
     printf("Number of pages: %lu\n", relationInfo->header->numPages);
     printf("Start page: %d\n", relationInfo->header->startPage);
 
-    RecordIterator iterator;
+    struct RecordIterator iterator;
     initialiseRecordIterator(&iterator);
 
     Record record = iterateRecords(relationInfo, schema, &iterator, true);
@@ -172,7 +172,7 @@ void extendedDisplayTable(char *tableName, TableType tableType) {
             outputTableSchema(schema);
         }
     }
-    freeRecordIterator(iterator);
+    freeRecordIterator(&iterator);
     closeTable(relationInfo);
     if (tableType == RELATION) {
         freeSchema(schema);
