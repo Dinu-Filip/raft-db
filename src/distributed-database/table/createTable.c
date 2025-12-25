@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "core/field.h"
 #include "insert.h"
 #include "log.h"
 #include "schema.h"

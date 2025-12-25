@@ -252,6 +252,12 @@ uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
     return recordStart;
 }
 
+void initialiseRecordIterator(RecordIterator iterator) {
+    iterator->page = NULL;
+    iterator->pageId = 0;
+    iterator->slotIdx = 0;
+}
+
 Record iterateRecords(TableInfo tableInfo, Schema *schema,
                       RecordIterator recordIterator, bool autoClearPage) {
     // Checks if database is empty

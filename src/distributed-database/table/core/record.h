@@ -1,6 +1,7 @@
 #ifndef RECORD_H
 #define RECORD_H
 
+#include "field.h"
 #include "table/table.h"
 
 typedef struct Record *Record;
@@ -78,5 +79,10 @@ extern void freeRecordIterator(RecordIterator iterator);
  */
 extern void outputRecord(Record record);
 
+/**
+ * Initialises fields of record iterator
+ * @param iterator
+ */
+extern void initialiseRecordIterator(RecordIterator iterator);
 
 #endif //RECORD_H

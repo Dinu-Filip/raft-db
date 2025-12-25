@@ -14,11 +14,6 @@
 #define _PAGE_SIZE 4096  // 4 KB
 #define PAGE_SIZE_WIDTH 2
 
-#define INT_WIDTH 4
-#define STR_WIDTH 255
-#define FLOAT_WIDTH 4
-#define BOOL_WIDTH 1
-
 #define RECORD_HEADER_WIDTH 2
 
 #define PAGE_SIZE_IDX 0
@@ -73,20 +68,6 @@ struct AttributeInfo {
     bool primary;
 };
 
-typedef struct Field Field;
-struct Field {
-    char *attribute;
-    AttributeType type;
-    unsigned size;
-    union {
-        int32_t intValue;
-        uint32_t uintValue;
-        float floatValue;
-        bool boolValue;
-        char *stringValue;
-    };
-};
-
 typedef struct TableHeader *TableHeader;
 struct TableHeader {
     bool modified;
@@ -136,19 +117,6 @@ extern void getRecordSlot(RecordSlot *slot, uint8_t *idx);
 extern void defragmentRecords(Page page);
 
 /**
- * Initialises fields of record iterator
- * @param iterator
- */
-extern void initialiseRecordIterator(RecordIterator iterator);
-
-/**
- * Writes field to page
- * @param fieldStart pointer to start of field
- * @param field field to write
- */
-extern void writeField(uint8_t *fieldStart, Field field);
-
-/**
  * Updates table header in page
  * @param tableInfo table to update
  */
@@ -163,7 +131,6 @@ extern void updateTableHeader(TableInfo tableInfo);
 extern void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
                                  Page page);
 
-extern int getStaticTypeWidth(AttributeType type);
 
 /**
  * Compares slots in decreasing order of offset
@@ -172,18 +139,10 @@ extern int getStaticTypeWidth(AttributeType type);
  */
 extern int compareSlots(const void *slot1, const void *slot2);
 
-extern void outputField(Field field, unsigned int rightPadding);
-
 /**
  * Closes table file and frees tableInfo
  * @param tableInfo
  */
 extern void closeTable(TableInfo tableInfo);
-
-/**
- * Frees attribute and value of field (for VARSTR and STR)
- * @param field
- */
-extern void freeField(Field field);
 
 #endif  // DATA_DICTIONARY_H
