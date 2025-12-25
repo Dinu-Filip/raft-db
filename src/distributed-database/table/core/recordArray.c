@@ -1,6 +1,7 @@
 #include "recordArray.h"
 
 #include <assert.h>
+#define INITIAL_RECORD_CAPACITY 1
 
 RecordArray createRecordArray() {
     RecordArray recordArray = malloc(sizeof(struct RecordArray));
