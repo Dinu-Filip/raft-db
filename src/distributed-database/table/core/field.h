@@ -7,6 +7,14 @@
 #define FLOAT_WIDTH 4
 #define BOOL_WIDTH 1
 
+typedef struct AttributeInfo AttributeInfo;
+struct AttributeInfo {
+    char *name;
+    AttributeType type;
+    int size;
+    bool primary;
+};
+
 typedef struct Field Field;
 struct Field {
     char *attribute;

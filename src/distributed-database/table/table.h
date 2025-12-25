@@ -60,14 +60,6 @@ struct RecordSlot {
     uint8_t *pos;
 };
 
-typedef struct AttributeInfo AttributeInfo;
-struct AttributeInfo {
-    char *name;
-    AttributeType type;
-    int size;
-    bool primary;
-};
-
 typedef struct TableHeader *TableHeader;
 struct TableHeader {
     bool modified;
