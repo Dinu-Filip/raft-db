@@ -36,5 +36,4 @@ void testIteratorRecordsMultiplePages() {
     ASSERT_EQ(expected, 500);
     FINISH_OUTER_TEST
     PRINT_SUMMARY
-
 }

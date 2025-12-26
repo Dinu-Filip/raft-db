@@ -92,12 +92,6 @@ extern void initialiseTable(char *name);
 extern TableHeader getTableHeader(FILE *table);
 
 /**
- * Shifts records and updates slots to ensure records are contiguous in memory
- * @param page page to read records from
- */
-extern void defragmentRecords(Page page);
-
-/**
  * Updates table header in page
  * @param tableInfo table to update
  */

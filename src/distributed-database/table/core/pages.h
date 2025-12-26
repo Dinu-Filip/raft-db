@@ -113,4 +113,10 @@ extern void addPageToSpaceInventory(char *tableName, TableInfo spaceInfo,
  */
 extern void getRecordSlot(RecordSlot *slot, uint8_t *idx);
 
+/**
+ * Shifts records and updates slots to ensure records are contiguous in memory
+ * @param page page to read records from
+ */
+extern void defragmentRecords(Page page);
+
 #endif  // PAGES_H
