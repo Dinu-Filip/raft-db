@@ -68,8 +68,9 @@ void insertRecord(TableInfo tableInfo, TableInfo spaceMap, Schema *schema,
     tableInfo->header->modified = true;
     LOG("GLOBAL INDEX: %hu", tableInfo->header->globalIdx);
 
-    uint16_t recordStart = writeRecord(
-        page, record, tableInfo->header->globalIdx, page->header->recordStart);
+    uint16_t recordStart = page->header->recordStart - record->size;
+    writeRecord(
+        page->ptr + recordStart, record);
     updatePageHeaderInsert(record, page, recordStart);
     updatePage(tableInfo, page);
 

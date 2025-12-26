@@ -145,7 +145,7 @@ static void parseField(Field *field, char *attribute, AttributeType type,
     }
 }
 
-Record parseRecord(Page page, size_t offset, Schema *schema) {
+Record parseRecord(uint8_t *ptr, Schema *schema) {
     Record record = initialiseRecord(schema->numAttributes);
 
     Field *fields = record->fields;
@@ -153,8 +153,8 @@ Record parseRecord(Page page, size_t offset, Schema *schema) {
 
     // Read offset to start of static fields
     uint16_t staticFieldStart;
-    memcpy(&staticFieldStart, page->ptr + offset, RECORD_HEADER_WIDTH);
-    uint8_t *recordStart = page->ptr + staticFieldStart;
+    memcpy(&staticFieldStart, ptr, RECORD_HEADER_WIDTH);
+    uint8_t *recordStart = ptr + staticFieldStart;
 
     // Reads the global index
     memcpy(&record->globalIdx, recordStart, GLOBAL_ID_WIDTH);
@@ -164,7 +164,7 @@ Record parseRecord(Page page, size_t offset, Schema *schema) {
     record->size += RECORD_HEADER_WIDTH;
 
     // Stores pointer to start of variable-length field slots
-    uint8_t *slotsStart = page->ptr + offset + RECORD_HEADER_WIDTH;
+    uint8_t *slotsStart = ptr + RECORD_HEADER_WIDTH;
     RecordSlot slot;
 
     // Reads each attribute from record using schema
@@ -180,7 +180,7 @@ Record parseRecord(Page page, size_t offset, Schema *schema) {
 
             // Parse variable length field using slot offset and size
             parseField(fields + i, attribute, type, slot.size,
-                       page->ptr + slot.offset);
+                       ptr + slot.offset);
 
             // Adds size of slot to variable length field to total record size
             record->size += SLOT_SIZE;
@@ -211,45 +211,37 @@ static int countNumVarFields(Record record) {
     return numVar;
 }
 
-uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
-                     uint16_t recordEnd) {
-    LOG("Write record %d\n", globalIdx);
-
-    // Offset to start of record
-    uint16_t recordStart = recordEnd - record->size;
+void writeRecord(uint8_t *ptr, Record record) {
+    LOG("Write record %d\n", record->globalIdx);
 
     // Counts number of variable length fields to determine number of variable
     // field slots needed
     int numVar = countNumVarFields(record);
 
-    unsigned slotOffset = recordStart + RECORD_HEADER_WIDTH;
-    // Finds offset to start of static fields
-    unsigned staticFieldStart =
-        recordStart + RECORD_HEADER_WIDTH + numVar * SLOT_SIZE;
+    // Writes offset to start of static fields
+    unsigned staticFieldStart = RECORD_HEADER_WIDTH + numVar * SLOT_SIZE;
+    memcpy(ptr, &staticFieldStart, RECORD_HEADER_WIDTH);
 
-    // Writes offset to start of static length fields
-    memcpy(page->ptr + recordStart, &staticFieldStart, RECORD_HEADER_WIDTH);
-
+    unsigned slotOffset = RECORD_HEADER_WIDTH;
     unsigned fieldOffset = staticFieldStart;
-    memcpy(page->ptr + fieldOffset, &globalIdx, GLOBAL_ID_WIDTH);
+
+    memcpy(ptr + fieldOffset, &record->globalIdx, GLOBAL_ID_WIDTH);
     fieldOffset += GLOBAL_ID_WIDTH;
 
     // Writes each field, setting (offset, size) slot for each variable length
     // field
     for (int i = 0; i < record->numValues; i++) {
         Field field = record->fields[i];
-        writeField(page->ptr + fieldOffset, field);
+        writeField(ptr + fieldOffset, field);
 
         if (field.type == VARSTR) {
             // Writes (pos, width) slot for each variable length field, updating
             // start of static fields
-            memcpy(page->ptr + slotOffset, &recordEnd, OFFSET_WIDTH);
-            memcpy(page->ptr + slotOffset + OFFSET_WIDTH, &field.size, SIZE_WIDTH);
+            memcpy(ptr + slotOffset, &fieldOffset, OFFSET_WIDTH);
+            memcpy(ptr + slotOffset + OFFSET_WIDTH, &field.size, SIZE_WIDTH);
             slotOffset += SLOT_SIZE;
         }
     }
-
-    return recordStart;
 }
 
 void initialiseRecordIterator(RecordIterator iterator) {
@@ -300,7 +292,7 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
 
         recordIterator->slotIdx++;
         recordIterator->lastSlot = nextSlot;
-        return parseRecord(recordIterator->page, nextSlot->offset, schema);
+        return parseRecord(recordIterator->page->ptr + nextSlot->offset, schema);
     }
 
     return NULL;

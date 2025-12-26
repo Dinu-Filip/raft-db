@@ -81,13 +81,11 @@ static void updateRecord(TableInfo tableInfo, Schema *schema,
     if (record->size <= oldSize) {
         LOG("Update record in place\n");
         outputRecord(record);
-        uint16_t recordEnd =
-            iterator->lastSlot->offset + iterator->lastSlot->size;
-        uint16_t recordStart =
-            writeRecord(page, record, record->globalIdx, recordEnd);
+        uint16_t recordStart = page->header->recordStart - record->size;
+        writeRecord(page->ptr + recordStart, record);
         updatePageHeaderUpdate(page, record, oldSize, iterator->lastSlot,
                                recordStart);
-        Record newRecord = parseRecord(page, recordStart, schema);
+        Record newRecord = parseRecord(page->ptr + recordStart, schema);
         LOG("New record\n");
         outputRecord(newRecord);
         defragmentRecords(iterator->page);

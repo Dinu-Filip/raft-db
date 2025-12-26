@@ -44,7 +44,7 @@ extern Record parseQuery(Schema *schema, QueryAttributes attributes,
  * @param offset offset to record
  * @param schema schema for parsing
  */
-extern Record parseRecord(Page page, size_t offset, Schema *schema);
+extern Record parseRecord(uint8_t *ptr, Schema *schema);
 
 /**
  * Writes record to page starting backwards from recordEnd
@@ -54,8 +54,7 @@ extern Record parseRecord(Page page, size_t offset, Schema *schema);
  * @param recordEnd offset of end of record
  * @return offset to start of record
  */
-extern uint16_t writeRecord(Page page, Record record, uint32_t globalIdx,
-                            uint16_t recordEnd);
+extern void writeRecord(uint8_t *ptr, Record record);
 
 /**
  * Iterates through records in database
