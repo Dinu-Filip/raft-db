@@ -1,7 +1,7 @@
 #ifndef CLIENT_HANDLING_INPUT_H
 #define CLIENT_HANDLING_INPUT_H
 
-#include "table/operation.h"
+#include "table/operations/operation.h"
 
 extern Operation parseOperationJson(const char *jsonString);
 

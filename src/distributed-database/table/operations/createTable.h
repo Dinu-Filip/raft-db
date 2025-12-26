@@ -1,7 +1,7 @@
 #ifndef CREATE_TABLE_H
 #define CREATE_TABLE_H
 
-#include "table/operation.h"
+#include "table/operations/operation.h"
 
 /**
  * Creates new binary file for table and initialises its header

@@ -6,11 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../schema.h"
 #include "createTable.h"
 #include "delete.h"
 #include "insert.h"
 #include "log.h"
-#include "schema.h"
 #include "select.h"
 #include "table/core/table.h"
 #include "update.h"

@@ -9,12 +9,10 @@
 
 #include "../db-utils.h"
 #include "../schema.h"
-#include "../update.h"
-#include "field.h"
+#include "../operations/update.h"
 #include "log.h"
 #include "pages.h"
-#include "record.h"
-#include "table/operation.h"
+#include "../operations/operation.h"
 
 // Global database directory
 char DB_DIRECTORY[MAX_FILE_NAME_LEN] = {'\0'};

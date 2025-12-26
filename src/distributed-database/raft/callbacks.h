@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 #include "log-entry.h"
-#include "table/operation.h"
+#include "table/operations/operation.h"
 
 /**
  * Handle the request for a vote from the sender node

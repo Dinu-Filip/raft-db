@@ -4,7 +4,7 @@
 
 #include "client-handling/input.h"
 #include "networking/msg.h"
-#include "table/operation.h"
+#include "table/operations/operation.h"
 #include "test-library.h"
 
 void assertQueryAttributesEquals(QueryAttributes a, QueryAttributes b) {

@@ -1,8 +1,8 @@
 #ifndef INSERT_H
 #define INSERT_H
 
-#include "core/table.h"
-#include "table/operation.h"
+#include "../core/table.h"
+#include "table/operations/operation.h"
 
 extern void insertOperation(TableInfo tableInfo, TableInfo spaceMap,
                             Schema *schema, Operation operation);

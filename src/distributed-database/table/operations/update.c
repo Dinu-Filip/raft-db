@@ -4,11 +4,11 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "conditions.h"
-#include "core/pages.h"
-#include "core/record.h"
-#include "core/table.h"
-#include "db-utils.h"
+#include "../conditions.h"
+#include "../core/pages.h"
+#include "../core/record.h"
+#include "../core/table.h"
+#include "../db-utils.h"
 #include "delete.h"
 #include "insert.h"
 #include "log.h"

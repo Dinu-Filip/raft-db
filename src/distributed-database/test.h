@@ -1,4 +1,4 @@
-#include "table/operation.h"
+#include "table/operations/operation.h"
 
 extern void assertQueryAttributesEquals(QueryAttributes a, QueryAttributes b);
 

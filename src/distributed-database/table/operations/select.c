@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "conditions.h"
-#include "core/record.h"
-#include "core/recordArray.h"
-#include "core/table.h"
+#include "../conditions.h"
+#include "../core/record.h"
+#include "../core/recordArray.h"
+#include "../core/table.h"
 #include "log.h"
 
 static void filterRecord(Record record, QueryAttributes attributes) {

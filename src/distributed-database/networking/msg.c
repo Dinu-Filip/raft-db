@@ -7,7 +7,7 @@
 
 #include "networking/rpc.h"
 #include "raft/log-entry.h"
-#include "table/operation.h"
+#include "table/operations/operation.h"
 
 void freeMsgShallow(Msg msg) {
     if (msg == NULL) return;

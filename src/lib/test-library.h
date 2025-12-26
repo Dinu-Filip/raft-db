@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "table/operation.h"
+#include "../distributed-database/table/operations/operation.h"
 
 int numTests = 0;
 int numPassed = 0;

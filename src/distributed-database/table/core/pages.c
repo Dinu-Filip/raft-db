@@ -5,13 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../insert.h"
+#include "../operations/insert.h"
+#include "../operations/select.h"
 #include "../schema.h"
-#include "../select.h"
 #include "log.h"
 #include "record.h"
 #include "recordArray.h"
-#include "table/operation.h"
+#include "table/operations/operation.h"
 
 #define INITIAL_NUM_SLOTS 10
 

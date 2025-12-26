@@ -1,7 +1,7 @@
 #ifndef SCHEMA_H
 #define SCHEMA_H
 
-#include "table/operation.h"
+#include "table/operations/operation.h"
 
 #define MAX_RELATION_NAME 20
 #define MAX_ATTRIBUTE_NAME 20

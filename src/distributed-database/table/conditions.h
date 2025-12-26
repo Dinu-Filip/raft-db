@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 #include "core/table.h"
-#include "table/operation.h"
+#include "table/operations/operation.h"
 
 /**
  * Evaluate a condition on the given record

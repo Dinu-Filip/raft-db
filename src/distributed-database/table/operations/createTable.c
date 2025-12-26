@@ -6,10 +6,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "core/field.h"
+#include "../core/field.h"
+#include "../schema.h"
 #include "insert.h"
 #include "log.h"
-#include "schema.h"
 #include "table/core/table.h"
 
 #define INITIAL_NUM_PAGES 0

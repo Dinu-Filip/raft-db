@@ -10,7 +10,7 @@
 
 #include "log.h"
 #include "raft/log-entry.h"
-#include "table/operation.h"
+#include "table/operations/operation.h"
 
 #define DEFAULT_READ_BUFFER_CAPACITY 1024
 // Should be equal to the largest non variable message

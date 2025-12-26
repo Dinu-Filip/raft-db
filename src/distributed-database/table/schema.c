@@ -8,7 +8,7 @@
 #include "core/record.h"
 #include "core/recordArray.h"
 #include "log.h"
-#include "select.h"
+#include "operations/select.h"
 #include "table/core/table.h"
 
 AttributeName schemaAttributes[NUM_SCHEMA_ATTRIBUTES] = {

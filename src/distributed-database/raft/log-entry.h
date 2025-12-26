@@ -1,7 +1,7 @@
 #ifndef LOG_ENTRY_H
 #define LOG_ENTRY_H
 
-#include "table/operation.h"
+#include "table/operations/operation.h"
 
 typedef struct LogEntry *LogEntry;
 struct LogEntry {

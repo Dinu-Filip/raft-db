@@ -3,8 +3,8 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "core/pages.h"
-#include "core/record.h"
+#include "../core/pages.h"
+#include "../core/record.h"
 #include "log.h"
 #include "table/core/table.h"
 

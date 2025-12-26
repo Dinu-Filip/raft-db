@@ -16,7 +16,7 @@
 #include "networking/rpc.h"
 #include "raft/log-table.h"
 #include "raft/raft-node.h"
-#include "table/operation.h"
+#include "table/operations/operation.h"
 
 #define FILE_PATH_BASE "./raft-db/"
 #define CURRENT_TERM_FILE_NAME "/currentterm"
