@@ -3,7 +3,7 @@
 
 #include "field.h"
 #include "pages.h"
-#include "table/core/table.h"
+#include "table.h"
 
 typedef struct Record *Record;
 struct Record {

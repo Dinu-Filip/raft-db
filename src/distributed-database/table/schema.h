@@ -1,7 +1,7 @@
 #ifndef SCHEMA_H
 #define SCHEMA_H
 
-#include "table/operations/operation.h"
+#include "operations/operation.h"
 
 #define MAX_RELATION_NAME 20
 #define MAX_ATTRIBUTE_NAME 20
@@ -35,7 +35,7 @@ typedef struct Schema Schema;
 struct Schema {
     AttributeName *attributes;
     AttributeType *attributeTypes;
-    unsigned int *attributeSizes;
+    unsigned *attributeSizes;
     int numAttributes;
 };
 

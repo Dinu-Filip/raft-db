@@ -158,6 +158,7 @@ Record parseRecord(uint8_t *ptr, Schema *schema) {
 
     // Reads the global index
     memcpy(&record->globalIdx, recordStart, GLOBAL_ID_WIDTH);
+
     recordStart += GLOBAL_ID_WIDTH;
 
     record->size += GLOBAL_ID_WIDTH;
@@ -167,7 +168,8 @@ Record parseRecord(uint8_t *ptr, Schema *schema) {
     uint8_t *slotsStart = ptr + RECORD_HEADER_WIDTH;
     RecordSlot slot;
 
-    // Reads each attribute from record using schema
+    // Reads each attribute from record using schema. As a precondition, the
+    // variable length schema attributes should be at the end.
     for (int i = 0; i < schema->numAttributes; i++) {
         char *attribute = schema->attributes[i];
         AttributeType type = schema->attributeTypes[i];
@@ -233,6 +235,7 @@ void writeRecord(uint8_t *ptr, Record record) {
     for (int i = 0; i < record->numValues; i++) {
         Field field = record->fields[i];
         writeField(ptr + fieldOffset, field);
+        fieldOffset += field.size;
 
         if (field.type == VARSTR) {
             // Writes (pos, width) slot for each variable length field, updating

@@ -1,6 +1,6 @@
 #ifndef FIELD_H
 #define FIELD_H
-#include "table/operations/operation.h"
+#include "../operations/operation.h"
 
 #define INT_WIDTH 4
 #define STR_WIDTH 255
