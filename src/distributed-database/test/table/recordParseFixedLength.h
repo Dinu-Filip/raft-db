@@ -1,4 +1,6 @@
 #ifndef RECORDPARSEFIXEDLENGTH_H
 #define RECORDPARSEFIXEDLENGTH_H
 
+void testRecordParseFixedLength();
+
 #endif //RECORDPARSEFIXEDLENGTH_H

@@ -8,7 +8,7 @@
 #include "../../table/operations/operation.h"
 #include "../../table/schema.h"
 
-int main() {
+void testRecordParseFixedLength() {
     Schema schema;
     AttributeName names[4] = {"name", "age", "height", "student"};
     AttributeType types[4] = {STR, INT, FLOAT, BOOL};
