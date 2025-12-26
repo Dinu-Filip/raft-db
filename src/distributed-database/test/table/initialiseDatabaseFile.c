@@ -17,4 +17,5 @@ void testInitialiseDatabaseFile() {
 
     FINISH_OUTER_TEST
     PRINT_SUMMARY
+    closeTable(info);
 }

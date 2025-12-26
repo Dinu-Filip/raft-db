@@ -15,9 +15,20 @@
 
 #define INITIAL_NUM_SLOTS 10
 
+static void initialisePageHeaderSlots(PageHeader header) {
+    if (header->slots.size == 0) {
+        return;
+    }
+
+    header->slots.slots = malloc(sizeof(RecordSlot) * header->slots.size);
+    assert(header->slots.slots != NULL);
+
+    header->slots.capacity = header->slots.size;
+}
+
 static void readPageSlots(PageHeader header, uint8_t *ptr) {
-    RecordSlot *slots = malloc(sizeof(RecordSlot) * header->slots.size);
-    assert(slots != NULL);
+    initialisePageHeaderSlots(header);
+    RecordSlot *slots = header->slots.slots;
 
     uint8_t *start = ptr + POS_ARRAY_IDX;
     unsigned numRecords = 0;
@@ -163,13 +174,6 @@ void freePage(Page page) {
     free(page);
 }
 
-static void initialisePageHeaderSlots(PageHeader header) {
-    header->slots.slots = malloc(sizeof(RecordSlot) * header->slots.size);
-    assert(header->slots.slots != NULL);
-
-    header->slots.capacity = header->slots.size;
-}
-
 PageHeader initialisePageHeader() {
     LOG("INITIALISE PAGE HEADER\n");
 
@@ -178,8 +182,9 @@ PageHeader initialisePageHeader() {
 
     header->numRecords = 0;
     header->recordStart = _PAGE_SIZE;
-    header->freeSpace = _PAGE_SIZE - NUM_SLOTS_WIDTH * 5;
+    header->freeSpace = _PAGE_SIZE - NUM_SLOTS_WIDTH * 3;
 
+    header->slots.size = 0;
     initialisePageHeaderSlots(header);
 
     header->modified = true;

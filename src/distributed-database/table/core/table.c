@@ -41,7 +41,9 @@ void initialiseTable(char *name) {
     snprintf(tableFile, MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN, "%s/%s.%s",
              DB_BASE_DIRECTORY, name, DB_EXTENSION);
     LOG("Initialise table %s\n", name);
+
     FILE *table = fopen(tableFile, "wb+");
+    assert(table != NULL);
 
     initialiseHeader(table);
     fclose(table);
