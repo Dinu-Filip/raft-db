@@ -5,54 +5,50 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/record.h"
-#include "core/recordArray.h"
-#include "insert.h"
+#include "../insert.h"
+#include "../schema.h"
+#include "../select.h"
 #include "log.h"
-#include "schema.h"
-#include "select.h"
+#include "record.h"
+#include "recordArray.h"
 #include "table/operation.h"
 
 #define INITIAL_NUM_SLOTS 10
+
+static void readPageSlots(PageHeader header, uint8_t *ptr) {
+    RecordSlot *slots = malloc(sizeof(RecordSlot) * header->numSlots);
+    assert(slots != NULL);
+
+    uint8_t *start = ptr + POS_ARRAY_IDX;
+    unsigned numRecords = 0;
+
+    // Reads page slots into header
+    for (int i = 0; i < header->numSlots; i++) {
+        getRecordSlot(&slots[i], start);
+        slots[i].modified = false;
+        start += SLOT_SIZE;
+
+        // Counts number of non-empty slots to get number of records in page
+        if (slots[i].size == 0) {
+            numRecords++;
+        }
+    }
+
+    header->numRecords = numRecords;
+}
 
 static PageHeader getPageHeader(uint8_t *ptr) {
     PageHeader pageHeader = calloc(1, sizeof(struct PageHeader));
     assert(pageHeader != NULL);
 
-    memcpy(&pageHeader->numRecords, ptr + NUM_RECORDS_IDX, NUM_RECORDS_WIDTH);
-    memcpy(&pageHeader->recordStart, ptr + RECORD_START_IDX, NUM_RECORDS_WIDTH);
-    memcpy(&pageHeader->freeSpace, ptr + FREE_SPACE_IDX, NUM_RECORDS_WIDTH);
+    memcpy(&pageHeader->numSlots, ptr + NUM_SLOTS_IDX, NUM_SLOTS_WIDTH);
+    memcpy(&pageHeader->recordStart, ptr + RECORD_START_IDX, NUM_SLOTS_WIDTH);
+    memcpy(&pageHeader->freeSpace, ptr + FREE_SPACE_IDX, NUM_SLOTS_WIDTH);
 
     pageHeader->modified = false;
 
-    int numSlots = INITIAL_NUM_SLOTS;
-    RecordSlot *slots = malloc(sizeof(RecordSlot) * numSlots);
-    assert(slots != NULL);
-
-    RecordSlot slot;
-    uint8_t *start = ptr + POS_ARRAY_IDX;
-
-    // Iterates through record slots and stopping at the
-    // terminating slot
-    int idx = 0;
-    do {
-        if (idx == numSlots - 1) {
-            numSlots += 10;
-
-            // Dynamically resizes when end of record slots array reached
-            RecordSlot *newSlots =
-                realloc(slots, numSlots * sizeof(RecordSlot));
-            assert(newSlots != NULL);
-
-            slots = newSlots;
-        }
-        getRecordSlot(&slot, start);
-        slot.modified = false;
-        start += SLOT_SIZE;
-        slots[idx++] = slot;
-    } while (slot.size != PAGE_TAIL);
-
-    pageHeader->recordSlots = slots;
+    // Reads page slots pointing pointer and size of each record
+    readPageSlots(pageHeader, ptr);
 
     return pageHeader;
 }
@@ -64,6 +60,7 @@ uint8_t *getRawPage(FILE *table, size_t pageSize, size_t pageId) {
     size_t pageStart = pageId * pageSize;
     assert(pageStart <= LONG_MAX);
 
+    // Reads raw page from database file
     fseek(table, pageStart, SEEK_SET);
     fread(ptr, sizeof(uint8_t), pageSize, table);
     fseek(table, 0, SEEK_SET);
@@ -78,17 +75,11 @@ Page getPage(TableInfo table, size_t pageId) {
     Page page = malloc(sizeof(struct Page));
     assert(page != NULL);
 
-    uint8_t *ptr = calloc(pageSize, sizeof(uint8_t));
-    assert(ptr != NULL);
-
-    assert(pageId < LONG_MAX);
-
-    fseek(table->table, pageId * pageSize, SEEK_SET);
-    fread(ptr, sizeof(uint8_t), pageSize, table->table);
+    uint8_t *ptr = getRawPage(table->table, pageSize, pageId);
 
     page->ptr = ptr;
     page->header = getPageHeader(ptr);
-    page->pageId = (uint16_t)pageId;
+    page->pageId = pageId;
 
     fseek(table->table, 0, SEEK_SET);
     return page;
@@ -105,27 +96,14 @@ Page addPage(TableInfo table) {
     uint8_t *ptr = malloc(sizeof(uint8_t) * pageSize);
     assert(ptr != NULL);
 
-    initialisePageHeader(ptr);
     table->header->numPages++;
 
-    size_t pageStart = table->header->numPages * pageSize;
-    assert(pageStart <= LONG_MAX);
-
-    fseek(table->table, table->header->numPages * pageSize, SEEK_SET);
-    fread(ptr, sizeof(uint8_t), pageSize, table->table);
-
     page->ptr = ptr;
-    page->header = getPageHeader(ptr);
+    page->header = initialisePageHeader();
     page->pageId = table->header->numPages;
 
-    // Sets start page if no other pages allocated
-    if (table->header->numPages == 1) {
-        table->header->startPage = 1;
-    };
-
+    // The page is written back to the database file lazily
     table->header->modified = true;
-
-    fseek(table->table, 0, SEEK_SET);
 
     return page;
 }
@@ -145,28 +123,31 @@ void addPageToSpaceInventory(char *tableName, TableInfo spaceInfo, Page page) {
 static void writePageHeader(Page page) {
     LOG("Update page header");
     PageHeader header = page->header;
-    uint8_t *ptr = page->ptr;
 
-    if (header->modified) {
-        memcpy(ptr + NUM_RECORDS_IDX, &header->numRecords, NUM_RECORDS_WIDTH);
-        memcpy(ptr + RECORD_START_IDX, &header->recordStart, NUM_RECORDS_WIDTH);
-        memcpy(ptr + FREE_SPACE_IDX, &header->freeSpace, NUM_RECORDS_WIDTH);
+    if (!header->modified) {
+        return;
     }
 
-    // Updates modified slots
-    int idx = 0;
-    RecordSlot currentSlot;
-    do {
-        currentSlot = header->recordSlots[idx];
-        if (currentSlot.modified) {
-            memcpy(ptr + POS_ARRAY_IDX + idx * (OFFSET_WIDTH + SIZE_WIDTH),
-                   &currentSlot.offset, OFFSET_WIDTH);
-            memcpy(ptr + POS_ARRAY_IDX + idx * (OFFSET_WIDTH + SIZE_WIDTH) +
-                       OFFSET_WIDTH,
-                   &currentSlot.size, SIZE_WIDTH);
+    uint8_t *ptr = page->ptr;
+
+    memcpy(ptr + NUM_SLOTS_IDX, &header->numSlots, NUM_SLOTS_WIDTH);
+    memcpy(ptr + RECORD_START_IDX, &header->recordStart, NUM_SLOTS_WIDTH);
+    memcpy(ptr + FREE_SPACE_IDX, &header->freeSpace, NUM_SLOTS_WIDTH);
+
+    for (int i = 0; i < header->numSlots; i++) {
+        RecordSlot currentSlot = header->recordSlots[i];
+
+        // Writes only modified slots to the page
+        if (!currentSlot.modified) {
+            continue;
         }
-        idx++;
-    } while (currentSlot.size != PAGE_TAIL);
+
+        memcpy(ptr + POS_ARRAY_IDX + i * (OFFSET_WIDTH + SIZE_WIDTH),
+                   &currentSlot.offset, OFFSET_WIDTH);
+        memcpy(ptr + POS_ARRAY_IDX + i * (OFFSET_WIDTH + SIZE_WIDTH) +
+                   OFFSET_WIDTH,
+               &currentSlot.size, SIZE_WIDTH);
+    }
 }
 
 void freePage(Page page) {
@@ -176,19 +157,26 @@ void freePage(Page page) {
     free(page);
 }
 
-void initialisePageHeader(uint8_t *page) {
+PageHeader initialisePageHeader() {
     LOG("INITIALISE PAGE HEADER\n");
 
-    const uint16_t numRecords = 0;
-    const uint16_t recordStart = _PAGE_SIZE;
-    const uint16_t freeSpace = _PAGE_SIZE - NUM_RECORDS_WIDTH * 5;
-    const uint16_t tail = PAGE_TAIL;
+    PageHeader header = malloc(sizeof(struct PageHeader));
+    assert(header != NULL);
 
-    memcpy(page, &numRecords, NUM_RECORDS_WIDTH);
-    memcpy(page + RECORD_START_IDX, &recordStart, NUM_RECORDS_WIDTH);
-    memcpy(page + FREE_SPACE_IDX, &freeSpace, NUM_RECORDS_WIDTH);
-    memcpy(page + POS_ARRAY_IDX, &tail, NUM_RECORDS_WIDTH);
-    memcpy(page + POS_ARRAY_IDX + OFFSET_WIDTH, &tail, NUM_RECORDS_WIDTH);
+    header->numRecords = 0;
+    header->recordStart = _PAGE_SIZE;
+    header->freeSpace = _PAGE_SIZE - NUM_SLOTS_WIDTH * 5;
+    header->numSlots = 1;
+
+    header->recordSlots = malloc(sizeof(RecordSlot) * header->numSlots);
+    assert(header->recordSlots != NULL);
+
+    header->recordSlots[0].size = PAGE_TAIL;
+    header->recordSlots[0].modified = true;
+
+    header->modified = true;
+
+    return header;
 }
 
 static QueryResult getFreeSpaces(TableInfo spaceInfo, char *tableName,
@@ -280,7 +268,10 @@ Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
 
 void updatePage(TableInfo tableInfo, Page page) {
     LOG("Update page\n");
+
+    // Updates page header if modified
     writePageHeader(page);
+    
     fseek(tableInfo->table, _PAGE_SIZE * page->pageId, SEEK_SET);
     fwrite(page->ptr, sizeof(uint8_t), _PAGE_SIZE, tableInfo->table);
     fseek(tableInfo->table, 0, SEEK_SET);

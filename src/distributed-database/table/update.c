@@ -5,13 +5,13 @@
 #include <string.h>
 
 #include "conditions.h"
+#include "core/pages.h"
 #include "core/record.h"
 #include "db-utils.h"
 #include "delete.h"
 #include "insert.h"
 #include "log.h"
 #include "operation.h"
-#include "pages.h"
 #include "select.h"
 #include "table.h"
 

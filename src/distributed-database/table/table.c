@@ -8,10 +8,10 @@
 #include <string.h>
 
 #include "core/field.h"
+#include "core/pages.h"
 #include "core/record.h"
 #include "db-utils.h"
 #include "log.h"
-#include "pages.h"
 #include "schema.h"
 #include "table/operation.h"
 #include "update.h"

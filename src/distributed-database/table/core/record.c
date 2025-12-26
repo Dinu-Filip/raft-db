@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "log.h"
-#include "table/pages.h"
+#include "table/core/pages.h"
 
 static Record initialiseRecord(unsigned numAttributes) {
     Record record = malloc(sizeof(struct Record));

@@ -3,10 +3,10 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "log.h"
-#include "pages.h"
-#include "table/table.h"
+#include "core/pages.h"
 #include "core/record.h"
+#include "log.h"
+#include "table/table.h"
 
 void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
     LOG("Update page header insert\n");
@@ -15,7 +15,7 @@ void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
     page->header->freeSpace -= record->size;
 
     page->header->modified = true;
-    page->header->numRecords++;
+    page->header->numSlots++;
     // Record always inserted at beginning of free space
     page->header->recordStart = recordStart;
 

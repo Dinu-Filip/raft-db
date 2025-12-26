@@ -2,8 +2,8 @@
 
 #include <string.h>
 
+#include "core/pages.h"
 #include "core/record.h"
-#include "pages.h"
 #include "table.h"
 #include "utils.h"
 
@@ -62,7 +62,7 @@ void outputTableSchema(Schema *schema) {
 
 static void outputPageHeader(Page page) {
     printf("-----------PAGE %hu HEADER-----------\n", page->pageId);
-    printf("Number of records: %d\n", page->header->numRecords);
+    printf("Number of records: %d\n", page->header->numSlots);
     printf("Offset to record start: %d\n", page->header->recordStart);
     printf("Amount of free space: %d\n", page->header->freeSpace);
     printf("\n");

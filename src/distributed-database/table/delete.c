@@ -1,8 +1,8 @@
 #include <stdlib.h>
 
 #include "conditions.h"
+#include "core/pages.h"
 #include "core/record.h"
-#include "pages.h"
 #include "table/operation.h"
 #include "table/table.h"
 
@@ -12,7 +12,7 @@ static void removeRecord(char *tableName, TableInfo spaceMap, Page page,
     slot->modified = true;
     page->header->modified = true;
     page->header->freeSpace += recordSize + SLOT_SIZE;
-    page->header->numRecords--;
+    page->header->numSlots--;
 
     // if (spaceMap != NULL) {
     //     updateSpaceInventory(tableName, spaceMap, page);

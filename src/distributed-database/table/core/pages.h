@@ -5,13 +5,14 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "table.h"
+#include "../table.h"
 
 #define START_PAGE 1
 
 typedef struct PageHeader *PageHeader;
 struct PageHeader {
     bool modified;
+    uint16_t numSlots;
     uint16_t numRecords;
     uint16_t recordStart;
     uint16_t freeSpace;
@@ -55,7 +56,7 @@ extern Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo,
  * Initialises fields of page header
  * @param page pointer to page
  */
-extern void initialisePageHeader(uint8_t *page);
+extern PageHeader initialisePageHeader();
 
 /**
  * Adds new page to database file
