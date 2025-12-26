@@ -235,8 +235,6 @@ void writeRecord(uint8_t *ptr, Record record) {
     for (int i = 0; i < record->numValues; i++) {
         Field field = record->fields[i];
         writeField(ptr + fieldOffset, field);
-        fieldOffset += field.size;
-
         if (field.type == VARSTR) {
             // Writes (pos, width) slot for each variable length field, updating
             // start of static fields
@@ -244,6 +242,7 @@ void writeRecord(uint8_t *ptr, Record record) {
             memcpy(ptr + slotOffset + OFFSET_WIDTH, &field.size, SIZE_WIDTH);
             slotOffset += SLOT_SIZE;
         }
+        fieldOffset += field.size;
     }
 }
 

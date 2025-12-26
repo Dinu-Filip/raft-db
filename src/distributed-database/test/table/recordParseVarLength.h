@@ -1,0 +1,6 @@
+#ifndef RECORDPARSEVARLENGTH_H
+#define RECORDPARSEVARLENGTH_H
+
+void testRecordParseVarLength();
+
+#endif //RECORDPARSEVARLENGTH_H

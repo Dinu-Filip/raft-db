@@ -3,9 +3,9 @@
 
 #include "../distributed-database/table/operations/operation.h"
 
-int numTests = 0;
-int numPassed = 0;
-int outputIndent = 0;
+static int numTests = 0;
+static int numPassed = 0;
+static int outputIndent = 0;
 
 #define INDENT(s)                                       \
     for (int i = 0; i < outputIndent; i++) printf(" "); \
