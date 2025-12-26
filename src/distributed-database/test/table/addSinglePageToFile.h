@@ -1,6 +1,6 @@
 #ifndef ADDPAGETOFILE_H
 #define ADDPAGETOFILE_H
 
-void testAddPageToFile();
+void testAddSinglePageToFile();
 
 #endif //ADDPAGETOFILE_H

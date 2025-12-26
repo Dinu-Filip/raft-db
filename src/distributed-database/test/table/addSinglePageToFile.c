@@ -1,12 +1,11 @@
-#include "addPageToFile.h"
-
 #include <assert.h>
 
 #include "../../table/core/pages.h"
 #include "../../table/core/table.h"
+#include "addSinglePageToFile.h"
 #include "test-library.h"
 
-void testAddPageToFile() {
+void testAddSinglePageToFile() {
     TableInfo info = openTable("testdb");
     unsigned numPages = info->header->numPages;
     Page page = addPage(info);
