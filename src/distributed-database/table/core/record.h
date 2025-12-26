@@ -2,6 +2,7 @@
 #define RECORD_H
 
 #include "field.h"
+#include "pages.h"
 #include "table/table.h"
 
 typedef struct Record *Record;

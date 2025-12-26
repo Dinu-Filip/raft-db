@@ -9,6 +9,14 @@
 
 #define START_PAGE 1
 
+typedef struct RecordSlot RecordSlot;
+struct RecordSlot {
+    bool modified;
+    uint16_t offset;
+    int16_t size;
+    uint8_t *pos;
+};
+
 typedef struct PageHeader *PageHeader;
 struct PageHeader {
     bool modified;
@@ -89,4 +97,12 @@ extern void updatePage(TableInfo tableInfo, Page page);
  */
 extern void addPageToSpaceInventory(char *tableName, TableInfo spaceInfo,
                                     Page page);
+
+/**
+ * Reads raw bytes into record slot
+ * @param slot pointer to slot
+ * @param idx pointer to raw slot
+ */
+extern void getRecordSlot(RecordSlot *slot, uint8_t *idx);
+
 #endif  // PAGES_H

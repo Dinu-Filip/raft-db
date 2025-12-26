@@ -43,12 +43,6 @@ TableInfo openTable(char *tableName) {
     return tableInfo;
 }
 
-void getRecordSlot(RecordSlot *slot, uint8_t *idx) {
-    memcpy(&slot->offset, idx, OFFSET_WIDTH);
-    memcpy(&slot->size, idx + OFFSET_WIDTH, SIZE_WIDTH);
-    slot->pos = idx;
-}
-
 int compareSlots(const void *slot1, const void *slot2) {
     // Compares slots in decreasing order of offset
 

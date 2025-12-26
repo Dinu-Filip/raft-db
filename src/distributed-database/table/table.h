@@ -52,14 +52,6 @@ typedef struct RecordArray *RecordArray;
 
 typedef enum { RELATION, SCHEMA, FREE_MAP } TableType;
 
-typedef struct RecordSlot RecordSlot;
-struct RecordSlot {
-    bool modified;
-    uint16_t offset;
-    int16_t size;
-    uint8_t *pos;
-};
-
 typedef struct TableHeader *TableHeader;
 struct TableHeader {
     bool modified;
@@ -94,13 +86,6 @@ extern TableInfo openTable(char *tableName);
  * @param table table FILE pointer
  */
 extern TableHeader getTableHeader(FILE *table);
-
-/**
- * Reads raw bytes into record slot
- * @param slot pointer to slot
- * @param idx pointer to raw slot
- */
-extern void getRecordSlot(RecordSlot *slot, uint8_t *idx);
 
 /**
  * Shifts records and updates slots to ensure records are contiguous in memory
