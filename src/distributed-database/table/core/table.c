@@ -39,7 +39,7 @@ static void initialiseHeader(FILE *headerptr) {
 void initialiseTable(char *name) {
     char tableFile[MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN];
     snprintf(tableFile, MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN, "%s/%s.%s",
-             DB_DIRECTORY, name, DB_EXTENSION);
+             DB_BASE_DIRECTORY, name, DB_EXTENSION);
     LOG("Initialise table %s\n", name);
     FILE *table = fopen(tableFile, "wb+");
 
@@ -56,10 +56,11 @@ void freeTable(TableInfo tableInfo) {
 TableInfo openTable(char *tableName) {
     char tableFile[MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN];
     snprintf(tableFile, MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN, "%s/%s.%s",
-             DB_DIRECTORY, tableName, DB_EXTENSION);
-    FILE *table = fopen(tableFile, "rb+");
-
+             DB_BASE_DIRECTORY, tableName, DB_EXTENSION);
     LOG("Open %s\n", tableFile);
+
+    FILE *table = fopen(tableFile, "rb+");
+    assert(table != NULL);
 
     TableInfo tableInfo = malloc(sizeof(struct TableInfo));
     assert(tableInfo != NULL);
@@ -129,7 +130,7 @@ void modifyRecordOffsets(Page page, size_t recordStart, size_t diff) {
 }
 
 void defragmentRecords(Page page) {
-    int numSlots = page->header->numSlots;
+    int numSlots = page->header->slots.size;
 
     // Sorts slots in decreasing order of offset
     // This allows records to be shifted as far right as possible without
@@ -138,7 +139,7 @@ void defragmentRecords(Page page) {
     assert(slots != NULL);
 
     for (int i = 0; i < numSlots; i++) {
-        slots[i] = &page->header->recordSlots[i];
+        slots[i] = &page->header->slots.slots[i];
     }
 
     qsort(slots, numSlots, sizeof(RecordSlot *), &compareSlots);

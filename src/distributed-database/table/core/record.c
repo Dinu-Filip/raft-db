@@ -269,12 +269,8 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
     const size_t maxId = tableInfo->header->numPages;
 
     while (recordIterator->pageId <= maxId) {
-        // Reads next record slot
-        RecordSlot *nextSlot =
-            &recordIterator->page->header->recordSlots[recordIterator->slotIdx];
-
         // If end of slot array encountered, moves to next page
-        if (nextSlot->size == PAGE_TAIL) {
+        if (recordIterator->slotIdx == recordIterator->page->header->slots.size) {
             recordIterator->pageId++;
             recordIterator->slotIdx = 0;
 
@@ -285,6 +281,9 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
 
             continue;
         }
+        // Reads next record slot
+        RecordSlot *nextSlot =
+            &recordIterator->page->header->slots.slots[recordIterator->slotIdx];
 
         // Skips over empty slot
         if (nextSlot->size == 0) {

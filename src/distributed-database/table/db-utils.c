@@ -62,7 +62,7 @@ void outputTableSchema(Schema *schema) {
 
 static void outputPageHeader(Page page) {
     printf("-----------PAGE %hu HEADER-----------\n", page->pageId);
-    printf("Number of records: %d\n", page->header->numSlots);
+    printf("Number of records: %d\n", page->header->slots.size);
     printf("Offset to record start: %d\n", page->header->recordStart);
     printf("Amount of free space: %d\n", page->header->freeSpace);
     printf("\n");
@@ -71,7 +71,7 @@ static void outputPageHeader(Page page) {
     int i = 0;
     RecordSlot slot;
     do {
-        slot = page->header->recordSlots[i++];
+        slot = page->header->slots.slots[i++];
         long diff = slot.pos - page->ptr;
         printf("%ld: ", diff);
         if (slot.size == 0) {

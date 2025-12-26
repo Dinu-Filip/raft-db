@@ -38,7 +38,7 @@
 #define GLOBAL_ID_NAME "GLOBAL_IDX"
 #define GLOBAL_ID_RECORD_IDX 0
 
-#define DB_BASE_DIRECTORY "raft-db"
+#define DB_BASE_DIRECTORY "../../../raft-db"
 
 #define SLOT_SIZE (OFFSET_WIDTH + SIZE_WIDTH)
 

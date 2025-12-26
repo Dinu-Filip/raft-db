@@ -12,7 +12,7 @@ static void removeRecord(char *tableName, TableInfo spaceMap, Page page,
     slot->modified = true;
     page->header->modified = true;
     page->header->freeSpace += recordSize + SLOT_SIZE;
-    page->header->numSlots--;
+    page->header->numRecords--;
 
     // if (spaceMap != NULL) {
     //     updateSpaceInventory(tableName, spaceMap, page);

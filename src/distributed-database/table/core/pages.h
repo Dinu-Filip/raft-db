@@ -13,18 +13,24 @@ typedef struct RecordSlot RecordSlot;
 struct RecordSlot {
     bool modified;
     uint16_t offset;
-    int16_t size;
+    unsigned size;
     uint8_t *pos;
+};
+
+typedef struct RecordSlotArray RecordSlotArray;
+struct RecordSlotArray {
+    RecordSlot *slots;
+    unsigned size;
+    unsigned capacity;
 };
 
 typedef struct PageHeader *PageHeader;
 struct PageHeader {
     bool modified;
-    uint16_t numSlots;
     uint16_t numRecords;
     uint16_t recordStart;
     uint16_t freeSpace;
-    RecordSlot *recordSlots;
+    RecordSlotArray slots;
 };
 
 typedef struct Page *Page;
@@ -65,6 +71,8 @@ extern Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo,
  * @param page pointer to page
  */
 extern PageHeader initialisePageHeader();
+
+extern void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart);
 
 /**
  * Adds new page to database file

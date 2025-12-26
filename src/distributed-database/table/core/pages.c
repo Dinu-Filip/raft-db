@@ -16,14 +16,14 @@
 #define INITIAL_NUM_SLOTS 10
 
 static void readPageSlots(PageHeader header, uint8_t *ptr) {
-    RecordSlot *slots = malloc(sizeof(RecordSlot) * header->numSlots);
+    RecordSlot *slots = malloc(sizeof(RecordSlot) * header->slots.size);
     assert(slots != NULL);
 
     uint8_t *start = ptr + POS_ARRAY_IDX;
     unsigned numRecords = 0;
 
     // Reads page slots into header
-    for (int i = 0; i < header->numSlots; i++) {
+    for (int i = 0; i < header->slots.size; i++) {
         getRecordSlot(&slots[i], start);
         slots[i].modified = false;
         start += SLOT_SIZE;
@@ -47,7 +47,7 @@ static PageHeader getPageHeader(uint8_t *ptr) {
     PageHeader pageHeader = calloc(1, sizeof(struct PageHeader));
     assert(pageHeader != NULL);
 
-    memcpy(&pageHeader->numSlots, ptr + NUM_SLOTS_IDX, NUM_SLOTS_WIDTH);
+    memcpy(&pageHeader->slots.size, ptr + NUM_SLOTS_IDX, NUM_SLOTS_WIDTH);
     memcpy(&pageHeader->recordStart, ptr + RECORD_START_IDX, NUM_SLOTS_WIDTH);
     memcpy(&pageHeader->freeSpace, ptr + FREE_SPACE_IDX, NUM_SLOTS_WIDTH);
 
@@ -136,12 +136,12 @@ static void writePageHeader(Page page) {
 
     uint8_t *ptr = page->ptr;
 
-    memcpy(ptr + NUM_SLOTS_IDX, &header->numSlots, NUM_SLOTS_WIDTH);
+    memcpy(ptr + NUM_SLOTS_IDX, &header->slots.size, NUM_SLOTS_WIDTH);
     memcpy(ptr + RECORD_START_IDX, &header->recordStart, NUM_SLOTS_WIDTH);
     memcpy(ptr + FREE_SPACE_IDX, &header->freeSpace, NUM_SLOTS_WIDTH);
 
-    for (int i = 0; i < header->numSlots; i++) {
-        RecordSlot currentSlot = header->recordSlots[i];
+    for (int i = 0; i < header->slots.size; i++) {
+        RecordSlot currentSlot = header->slots.slots[i];
 
         // Writes only modified slots to the page
         if (!currentSlot.modified) {
@@ -158,9 +158,16 @@ static void writePageHeader(Page page) {
 
 void freePage(Page page) {
     free(page->ptr);
-    free(page->header->recordSlots);
+    free(page->header->slots.slots);
     free(page->header);
     free(page);
+}
+
+static void initialisePageHeaderSlots(PageHeader header) {
+    header->slots.slots = malloc(sizeof(RecordSlot) * header->slots.size);
+    assert(header->slots.slots != NULL);
+
+    header->slots.capacity = header->slots.size;
 }
 
 PageHeader initialisePageHeader() {
@@ -172,17 +179,52 @@ PageHeader initialisePageHeader() {
     header->numRecords = 0;
     header->recordStart = _PAGE_SIZE;
     header->freeSpace = _PAGE_SIZE - NUM_SLOTS_WIDTH * 5;
-    header->numSlots = 1;
 
-    header->recordSlots = malloc(sizeof(RecordSlot) * header->numSlots);
-    assert(header->recordSlots != NULL);
-
-    header->recordSlots[0].size = PAGE_TAIL;
-    header->recordSlots[0].modified = true;
+    initialisePageHeaderSlots(header);
 
     header->modified = true;
 
     return header;
+}
+
+static void resizeRecordSlots(RecordSlotArray array) {
+    if (array.size != array.capacity) {
+        return;
+    }
+
+    array.capacity *= 2;
+    array.slots = realloc(array.slots, sizeof(RecordSlot) * array.capacity);
+    assert(array.slots != NULL);
+}
+
+void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
+    LOG("Update page header insert\n");
+
+    // Updates free space log in page header
+    page->header->freeSpace -= record->size;
+
+    page->header->modified = true;
+    page->header->numRecords++;
+    // Record always inserted at beginning of free space
+    page->header->recordStart = recordStart;
+
+    // First tries to fill empty slot
+    for (int i = 0; i < page->header->slots.size; i++) {
+        RecordSlot *slot = &page->header->slots.slots[i];
+        if (slot->size == 0) {
+            slot->size = record->size;
+            slot->offset = recordStart;
+            slot->modified = true;
+            return;
+        }
+    }
+
+    // All slots must be full, so adds slot to end
+    resizeRecordSlots(page->header->slots);
+    RecordSlot *newSlot = &page->header->slots.slots[page->header->slots.size];
+    newSlot->size = record->size;
+    newSlot->offset = recordStart;
+    newSlot->modified = true;
 }
 
 static QueryResult getFreeSpaces(TableInfo spaceInfo, char *tableName,
