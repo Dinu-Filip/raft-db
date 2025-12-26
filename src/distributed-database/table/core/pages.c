@@ -16,14 +16,12 @@
 #define INITIAL_NUM_SLOTS 10
 
 static void initialisePageHeaderSlots(PageHeader header) {
-    if (header->slots.size == 0) {
-        return;
-    }
+    unsigned capacity = header->slots.size > 0 ? header->slots.size : 1;
 
-    header->slots.slots = malloc(sizeof(RecordSlot) * header->slots.size);
+    header->slots.slots = malloc(sizeof(RecordSlot) * capacity);
     assert(header->slots.slots != NULL);
 
-    header->slots.capacity = header->slots.size;
+    header->slots.capacity = capacity;
 }
 
 static void readPageSlots(PageHeader header, uint8_t *ptr) {
@@ -40,7 +38,7 @@ static void readPageSlots(PageHeader header, uint8_t *ptr) {
         start += SLOT_SIZE;
 
         // Counts number of non-empty slots to get number of records in page
-        if (slots[i].size == 0) {
+        if (slots[i].size != 0) {
             numRecords++;
         }
     }
@@ -82,7 +80,6 @@ uint8_t *getRawPage(FILE *table, size_t pageSize, size_t pageId) {
     fread(ptr, sizeof(uint8_t), pageSize, table);
     fseek(table, 0, SEEK_SET);
 
-    LOG("GET RAW PAGE %ld\n", pageId);
     return ptr;
 }
 
@@ -103,8 +100,6 @@ Page getPage(TableInfo table, size_t pageId) {
 }
 
 Page addPage(TableInfo table) {
-    LOG("ADD PAGE TO %s\n", table->name);
-
     size_t pageSize = table->header->pageSize;
 
     Page page = malloc(sizeof(struct Page));
@@ -118,7 +113,6 @@ Page addPage(TableInfo table) {
     page->ptr = ptr;
     page->header = initialisePageHeader();
     page->pageId = table->header->numPages;
-
     // The page is written back to the database file lazily
     table->header->modified = true;
 
@@ -175,8 +169,6 @@ void freePage(Page page) {
 }
 
 PageHeader initialisePageHeader() {
-    LOG("INITIALISE PAGE HEADER\n");
-
     PageHeader header = malloc(sizeof(struct PageHeader));
     assert(header != NULL);
 
@@ -192,14 +184,14 @@ PageHeader initialisePageHeader() {
     return header;
 }
 
-static void resizeRecordSlots(RecordSlotArray array) {
-    if (array.size != array.capacity) {
+static void resizeRecordSlots(RecordSlotArray *array) {
+    if (array->size < array->capacity) {
         return;
     }
 
-    array.capacity *= 2;
-    array.slots = realloc(array.slots, sizeof(RecordSlot) * array.capacity);
-    assert(array.slots != NULL);
+    array->capacity *= 2;
+    array->slots = realloc(array->slots, sizeof(RecordSlot) * array->capacity);
+    assert(array->slots != NULL);
 }
 
 void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
@@ -225,11 +217,12 @@ void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
     }
 
     // All slots must be full, so adds slot to end
-    resizeRecordSlots(page->header->slots);
-    RecordSlot *newSlot = &page->header->slots.slots[page->header->slots.size];
+    resizeRecordSlots(&page->header->slots);
+    RecordSlot *newSlot = &page->header->slots.slots[page->header->slots.size++];
     newSlot->size = record->size;
     newSlot->offset = recordStart;
     newSlot->modified = true;
+    page->header->freeSpace -= SLOT_SIZE;
 }
 
 static QueryResult getFreeSpaces(TableInfo spaceInfo, char *tableName,
@@ -320,7 +313,7 @@ Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
 }
 
 void updatePage(TableInfo tableInfo, Page page) {
-    LOG("Update page\n");
+    LOG("Update page %d\n", page->pageId);
 
     // Updates page header if modified
     writePageHeader(page);

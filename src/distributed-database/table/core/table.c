@@ -71,7 +71,6 @@ TableInfo openTable(char *tableName) {
     tableInfo->name = strdup(tableName);
     tableInfo->header = getTableHeader(table);
 
-    LOG("Got table\n");
     return tableInfo;
 }
 
@@ -91,8 +90,7 @@ int compareSlots(const void *slot1, const void *slot2) {
 }
 
 TableHeader getTableHeader(FILE *table) {
-    LOG("GET HEADER\n");
-
+    LOG("Reading header");
     TableHeader header = malloc(sizeof(struct TableHeader));
     assert(header != NULL);
 
@@ -101,7 +99,6 @@ TableHeader getTableHeader(FILE *table) {
     memcpy(&header->pageSize, headerPage + PAGE_SIZE_IDX, PAGE_SIZE_WIDTH);
     memcpy(&header->numPages, headerPage + NUM_PAGES_IDX, PAGE_ID_WIDTH);
     memcpy(&header->globalIdx, headerPage + GLOBAL_ID_IDX, GLOBAL_ID_WIDTH);
-
     header->modified = false;
 
     free(headerPage);
@@ -179,6 +176,7 @@ void updateTableHeader(TableInfo tableInfo) {
     TableHeader header = tableInfo->header;
 
     if (header->modified) {
+        LOG("Num pages modified: %lu\n", header->numPages);
         fseek(tableInfo->table, 0, SEEK_SET);
         fwrite(&header->pageSize, sizeof(uint8_t), PAGE_SIZE_WIDTH,
                tableInfo->table);
@@ -231,6 +229,7 @@ void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
 }
 
 void closeTable(TableInfo tableInfo) {
+    updateTableHeader(tableInfo);
     fclose(tableInfo->table);
     free(tableInfo->header);
     free(tableInfo->name);

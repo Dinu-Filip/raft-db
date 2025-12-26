@@ -1,0 +1,6 @@
+#ifndef INSERTRECORDSSINGLEPAGE_H
+#define INSERTRECORDSSINGLEPAGE_H
+
+void testInsertRecordsSinglePage();
+
+#endif //INSERTRECORDSSINGLEPAGE_H
