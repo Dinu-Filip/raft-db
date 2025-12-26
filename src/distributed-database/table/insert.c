@@ -6,7 +6,7 @@
 #include "core/pages.h"
 #include "core/record.h"
 #include "log.h"
-#include "table/table.h"
+#include "table/core/table.h"
 
 void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
     LOG("Update page header insert\n");

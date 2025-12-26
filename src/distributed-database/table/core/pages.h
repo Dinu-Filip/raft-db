@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "../table.h"
+#include "table.h"
 
 #define START_PAGE 1
 

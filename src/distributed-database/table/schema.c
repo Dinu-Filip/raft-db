@@ -9,7 +9,7 @@
 #include "core/recordArray.h"
 #include "log.h"
 #include "select.h"
-#include "table/table.h"
+#include "table/core/table.h"
 
 AttributeName schemaAttributes[NUM_SCHEMA_ATTRIBUTES] = {
     SCHEMA_RELATION_NAME, SCHEMA_ATTRIBUTE_TYPE, SCHEMA_IDX,

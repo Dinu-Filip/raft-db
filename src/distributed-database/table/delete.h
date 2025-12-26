@@ -1,7 +1,7 @@
 #ifndef DELETE_H
 #define DELETE_H
 
-#include "table.h"
+#include "core/table.h"
 
 extern void deleteFrom(TableInfo table, TableInfo spaceMap, Schema *schema,
                        Condition condition);

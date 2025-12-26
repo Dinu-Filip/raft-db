@@ -1,7 +1,7 @@
 #include <assert.h>
 
 #include "../lib/log.h"
-#include "table.h"
+#include "core/table.h"
 
 void initialiseTestTable(Operation operation, char *tableName) {
     LOG("TEST TABLE CREATION\n");

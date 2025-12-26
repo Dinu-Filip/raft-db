@@ -3,8 +3,8 @@
 #include "conditions.h"
 #include "core/pages.h"
 #include "core/record.h"
+#include "table/core/table.h"
 #include "table/operation.h"
-#include "table/table.h"
 
 static void removeRecord(char *tableName, TableInfo spaceMap, Page page,
                          RecordSlot *slot, size_t recordSize) {

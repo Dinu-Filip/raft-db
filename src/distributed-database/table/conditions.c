@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "core/record.h"
-#include "table/table.h"
+#include "table/core/table.h"
 
 #define EVALUATE_COND(field, op, value)                                \
     switch (value->type) {                                             \

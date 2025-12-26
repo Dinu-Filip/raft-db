@@ -1,6 +1,6 @@
 #ifndef UTILS_H
 #define UTILS_H
-#include "table.h"
+#include "core/table.h"
 
 /**
  * Enhanced display of table including headers and offsets

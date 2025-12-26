@@ -4,7 +4,7 @@
 
 #include "core/pages.h"
 #include "core/record.h"
-#include "table.h"
+#include "core/table.h"
 #include "utils.h"
 
 #define MAX(x, y) (x > y ? x : y)

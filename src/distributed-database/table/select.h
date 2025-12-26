@@ -1,7 +1,7 @@
 #ifndef SELECT_H
 #define SELECT_H
 
-#include "table.h"
+#include "core/table.h"
 #include "table/operation.h"
 
 extern QueryResult selectOperation(TableInfo tableInfo, Schema *schema,

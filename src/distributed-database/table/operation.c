@@ -12,7 +12,7 @@
 #include "log.h"
 #include "schema.h"
 #include "select.h"
-#include "table/table.h"
+#include "table/core/table.h"
 #include "update.h"
 
 QueryResult executeOperation(Operation operation) {

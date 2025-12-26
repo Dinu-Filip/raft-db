@@ -1,7 +1,7 @@
 #ifndef UPDATE_H
 #define UPDATE_H
 
-#include "table.h"
+#include "core/table.h"
 
 /**
  * Updates record in database if satisfies condition

@@ -10,7 +10,7 @@
 #include "insert.h"
 #include "log.h"
 #include "schema.h"
-#include "table/table.h"
+#include "table/core/table.h"
 
 #define INITIAL_NUM_PAGES 0
 #define INITIAL_START_PAGE (-1)

@@ -7,8 +7,8 @@
 #include "conditions.h"
 #include "core/record.h"
 #include "core/recordArray.h"
+#include "core/table.h"
 #include "log.h"
-#include "table.h"
 
 static void filterRecord(Record record, QueryAttributes attributes) {
     // Filters out fields that are not specified in Operation

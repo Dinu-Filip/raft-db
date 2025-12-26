@@ -7,13 +7,13 @@
 #include "conditions.h"
 #include "core/pages.h"
 #include "core/record.h"
+#include "core/table.h"
 #include "db-utils.h"
 #include "delete.h"
 #include "insert.h"
 #include "log.h"
 #include "operation.h"
 #include "select.h"
-#include "table.h"
 
 static void updatePageHeaderUpdate(Page page, Record record, uint16_t oldSize,
                                    RecordSlot *slot, uint16_t recordStart) {

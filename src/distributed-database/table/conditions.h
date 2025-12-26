@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "table.h"
+#include "core/table.h"
 #include "table/operation.h"
 
 /**
