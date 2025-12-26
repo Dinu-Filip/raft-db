@@ -259,28 +259,29 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
         return NULL;
     }
 
-    // Sets iterator fields at start of iteration
-    if (recordIterator->page == NULL) {
-        recordIterator->page = getPage(tableInfo, recordIterator->pageId);
-        recordIterator->slotIdx = 0;
-    }
-
     // Stores id of last page stored in memory
     const size_t maxId = tableInfo->header->numPages;
 
     while (recordIterator->pageId <= maxId) {
+        // Sets iterator fields at start of iteration
+        if (recordIterator->page == NULL) {
+            recordIterator->page = getPage(tableInfo, recordIterator->pageId);
+            recordIterator->slotIdx = 0;
+        }
+
         // If end of slot array encountered, moves to next page
         if (recordIterator->slotIdx == recordIterator->page->header->slots.size) {
             recordIterator->pageId++;
-            recordIterator->slotIdx = 0;
 
             // Frees previous page if not used elsewhere
             if (autoClearPage) {
                 freePage(recordIterator->page);
             }
 
+            recordIterator->page = NULL;
             continue;
         }
+
         // Reads next record slot
         RecordSlot *nextSlot =
             &recordIterator->page->header->slots.slots[recordIterator->slotIdx++];
