@@ -248,7 +248,7 @@ void writeRecord(uint8_t *ptr, Record record) {
 
 void initialiseRecordIterator(RecordIterator iterator) {
     iterator->page = NULL;
-    iterator->pageId = 0;
+    iterator->pageId = 1;
     iterator->slotIdx = 0;
 }
 
@@ -283,15 +283,13 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
         }
         // Reads next record slot
         RecordSlot *nextSlot =
-            &recordIterator->page->header->slots.slots[recordIterator->slotIdx];
+            &recordIterator->page->header->slots.slots[recordIterator->slotIdx++];
 
         // Skips over empty slot
         if (nextSlot->size == 0) {
-            recordIterator->slotIdx++;
             continue;
         }
 
-        recordIterator->slotIdx++;
         recordIterator->lastSlot = nextSlot;
         return parseRecord(recordIterator->page->ptr + nextSlot->offset, schema);
     }

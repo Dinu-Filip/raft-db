@@ -1,0 +1,6 @@
+#ifndef ITERATERECORDSSINGLEPAGE_H
+#define ITERATERECORDSSINGLEPAGE_H
+
+void testIteratorRecordsSinglePage();
+
+#endif //ITERATERECORDSSINGLEPAGE_H
