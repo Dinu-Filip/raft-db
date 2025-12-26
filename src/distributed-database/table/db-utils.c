@@ -134,7 +134,6 @@ void extendedDisplayTable(char *tableName, TableType tableType) {
     printf("-----------TABLE HEADER-----------\n");
     printf("Page size: %lu\n", relationInfo->header->pageSize);
     printf("Number of pages: %lu\n", relationInfo->header->numPages);
-    printf("Start page: %d\n", relationInfo->header->startPage);
 
     struct RecordIterator iterator;
     initialiseRecordIterator(&iterator);

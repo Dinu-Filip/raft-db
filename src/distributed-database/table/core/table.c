@@ -14,8 +14,38 @@
 #include "pages.h"
 #include "../operations/operation.h"
 
+#define INITIAL_NUM_PAGES 0
+#define INITIAL_START_PAGE (-1)
+#define INITIAL_GLOBAL_IDX 0
+
 // Global database directory
 char DB_DIRECTORY[MAX_FILE_NAME_LEN] = {'\0'};
+
+static void initialiseHeader(FILE *headerptr) {
+    LOG("Initialise header");
+    fseek(headerptr, PAGE_SIZE_IDX, SEEK_SET);
+
+    const int pageSize = _PAGE_SIZE;
+    const int initialNumPages = INITIAL_NUM_PAGES;
+    const int initialGlobalIdx = INITIAL_GLOBAL_IDX;
+
+    fwrite(&pageSize, sizeof(uint8_t), PAGE_SIZE_WIDTH, headerptr);
+    fwrite(&initialNumPages, sizeof(uint8_t), PAGE_ID_WIDTH, headerptr);
+    fwrite(&initialGlobalIdx, sizeof(uint8_t), GLOBAL_ID_WIDTH, headerptr);
+
+    fseek(headerptr, 0, SEEK_SET);
+}
+
+void initialiseTable(char *name) {
+    char tableFile[MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN];
+    snprintf(tableFile, MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN, "%s/%s.%s",
+             DB_DIRECTORY, name, DB_EXTENSION);
+    LOG("Initialise table %s\n", name);
+    FILE *table = fopen(tableFile, "wb+");
+
+    initialiseHeader(table);
+    fclose(table);
+}
 
 void freeTable(TableInfo tableInfo) {
     fclose(tableInfo->table);
@@ -64,28 +94,15 @@ TableHeader getTableHeader(FILE *table) {
     assert(header != NULL);
 
     uint8_t *headerPage = getRawPage(table, _PAGE_SIZE, TABLE_HEADER_PAGE);
-    uint16_t pageSize;
 
-    memcpy(&pageSize, headerPage + PAGE_SIZE_IDX, PAGE_SIZE_WIDTH);
-
-    uint32_t numPages;
-    memcpy(&numPages, headerPage + NUM_PAGES_IDX, PAGE_ID_WIDTH);
-
-    int startPage;
-    memcpy(&startPage, headerPage + START_PAGE_IDX, PAGE_ID_WIDTH);
-
-    uint32_t globalIdx;
-    memcpy(&globalIdx, headerPage + GLOBAL_ID_IDX, GLOBAL_ID_WIDTH);
-
-    header->pageSize = pageSize;
-    header->numPages = numPages;
-    header->startPage = startPage;
-
-    header->globalIdx = globalIdx;
+    memcpy(&header->pageSize, headerPage + PAGE_SIZE_IDX, PAGE_SIZE_WIDTH);
+    memcpy(&header->numPages, headerPage + NUM_PAGES_IDX, PAGE_ID_WIDTH);
+    memcpy(&header->globalIdx, headerPage + GLOBAL_ID_IDX, GLOBAL_ID_WIDTH);
 
     header->modified = false;
 
     free(headerPage);
+
     return header;
 }
 
@@ -163,8 +180,6 @@ void updateTableHeader(TableInfo tableInfo) {
         fwrite(&header->pageSize, sizeof(uint8_t), PAGE_SIZE_WIDTH,
                tableInfo->table);
         fwrite(&header->numPages, sizeof(uint8_t), PAGE_ID_WIDTH,
-               tableInfo->table);
-        fwrite(&header->startPage, sizeof(uint8_t), PAGE_ID_WIDTH,
                tableInfo->table);
         fwrite(&header->globalIdx, sizeof(uint8_t), GLOBAL_ID_WIDTH,
                tableInfo->table);

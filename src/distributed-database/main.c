@@ -1,5 +1,5 @@
-#include "test/table/recordParseVarLength.h"
+#include "test/table/initialiseDatabaseFile.h"
 
 int main() {
-    testRecordParseVarLength();
+    testInitialiseDatabaseFile();
 }

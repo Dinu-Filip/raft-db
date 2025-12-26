@@ -236,7 +236,7 @@ Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
     if (tableType == FREE_MAP || tableType == SCHEMA) {
         LOG("SCHEMA OR MAP FREE PAGE\n");
         for (int i = 0; i < tableInfo->header->numPages; i++) {
-            Page page = getPage(tableInfo, tableInfo->header->startPage + i);
+            Page page = getPage(tableInfo, 1 + i);
 
             // Compares free space including slot width
             if (page->header->freeSpace >=

@@ -18,8 +18,7 @@
 
 #define PAGE_SIZE_IDX 0
 #define NUM_PAGES_IDX (PAGE_SIZE_IDX + PAGE_SIZE_WIDTH)
-#define START_PAGE_IDX (NUM_PAGES_IDX + PAGE_ID_WIDTH)
-#define GLOBAL_ID_IDX (START_PAGE_IDX + PAGE_ID_WIDTH)
+#define GLOBAL_ID_IDX (NUM_PAGES_IDX + PAGE_ID_WIDTH)
 
 #define PAGE_ID_WIDTH 4
 
@@ -57,7 +56,6 @@ struct TableHeader {
     bool modified;
     size_t pageSize;
     size_t numPages;
-    int startPage;
     uint32_t globalIdx;
 };
 
@@ -80,6 +78,12 @@ struct QueryResult {
  * @return TableInfo containing FILE pointer and header
  */
 extern TableInfo openTable(char *tableName);
+
+/**
+ * Creates new binary file for table and initialises its header
+ * @param name name of the table to initialise
+ */
+extern void initialiseTable(char *name);
 
 /**
  * Reads and parses table header

@@ -12,27 +12,6 @@
 #include "log.h"
 #include "table/core/table.h"
 
-#define INITIAL_NUM_PAGES 0
-#define INITIAL_START_PAGE (-1)
-#define INITIAL_GLOBAL_IDX 0
-
-static void initialiseHeader(FILE *headerptr) {
-    LOG("Initialise header");
-    fseek(headerptr, PAGE_SIZE_IDX, SEEK_SET);
-
-    const int pageSize = _PAGE_SIZE;
-    const int initialNumPages = INITIAL_NUM_PAGES;
-    const int initialStartPage = INITIAL_START_PAGE;
-    const int initialGlobalIdx = INITIAL_GLOBAL_IDX;
-
-    fwrite(&pageSize, sizeof(uint8_t), PAGE_SIZE_WIDTH, headerptr);
-    fwrite(&initialNumPages, sizeof(uint8_t), PAGE_ID_WIDTH, headerptr);
-    fwrite(&initialStartPage, sizeof(uint8_t), PAGE_ID_WIDTH, headerptr);
-    fwrite(&initialGlobalIdx, sizeof(uint8_t), GLOBAL_ID_WIDTH, headerptr);
-
-    fseek(headerptr, 0, SEEK_SET);
-}
-
 static void setSchema(char *schema, char *tableName, QueryAttributes attributes,
                       const unsigned int *sizes, QueryTypes types) {
     LOG("SET SCHEMA\n");
@@ -109,17 +88,6 @@ static void setSchema(char *schema, char *tableName, QueryAttributes attributes,
     freeQueryAttributes(dictAttributes);
     free(dictSchema);
     closeTable(schemaInfo);
-}
-
-void initialiseTable(char *name) {
-    char tableFile[MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN];
-    snprintf(tableFile, MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN, "%s/%s.%s",
-             DB_DIRECTORY, name, DB_EXTENSION);
-    LOG("Initialise table %s\n", name);
-    FILE *table = fopen(tableFile, "wb+");
-
-    initialiseHeader(table);
-    fclose(table);
 }
 
 void createTable(Operation operation) {

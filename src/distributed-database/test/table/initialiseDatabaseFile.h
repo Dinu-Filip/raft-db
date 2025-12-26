@@ -1,0 +1,6 @@
+#ifndef INITIALISEDATABASEFILE_H
+#define INITIALISEDATABASEFILE_H
+
+void testInitialiseDatabaseFile();
+
+#endif //INITIALISEDATABASEFILE_H
