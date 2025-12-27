@@ -77,16 +77,9 @@ TableInfo openTable(char *tableName) {
 int compareSlots(const void *slot1, const void *slot2) {
     // Compares slots in decreasing order of offset
 
-    RecordSlot *s1 = (RecordSlot *)slot1;
-    RecordSlot *s2 = (RecordSlot *)slot2;
-    
-    if (s1->offset == s2->offset) {
-        return 0;
-    }
-    if (s1->offset < s2->offset) {
-        return 1;
-    }
-    return -1;
+    RecordSlot *s1 = *(RecordSlot **)slot1;
+    RecordSlot *s2 = *(RecordSlot **)slot2;
+    return (s1->offset < s2->offset) - (s1->offset > s2->offset);
 }
 
 TableHeader getTableHeader(FILE *table) {

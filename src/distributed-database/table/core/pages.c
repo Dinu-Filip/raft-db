@@ -323,32 +323,9 @@ void updatePage(TableInfo tableInfo, Page page) {
     fseek(tableInfo->table, 0, SEEK_SET);
 }
 
-static void modifyRecordOffsets(Page page, size_t recordStart, size_t diff) {
-    assert(diff >= 0);
-
-    // Shifts offset to start of static fields
-    uint16_t oldStaticFieldStart = 0;
-    memcpy(&oldStaticFieldStart, page->ptr + recordStart, RECORD_HEADER_WIDTH);
-    uint16_t newStaticFieldStart = oldStaticFieldStart + diff;
-    memcpy(page->ptr + recordStart, &newStaticFieldStart, RECORD_HEADER_WIDTH);
-
-    // Updates offset for each of the variable field slots
-    size_t slotsStart = recordStart + RECORD_HEADER_WIDTH;
-    while (slotsStart != oldStaticFieldStart) {
-        uint16_t oldOffset = 0;
-        memcpy(&oldOffset, page->ptr + slotsStart, OFFSET_WIDTH);
-        uint16_t newOffset = oldOffset + diff;
-        memcpy(page->ptr + slotsStart, &newOffset, OFFSET_WIDTH);
-        slotsStart += SLOT_SIZE;
-    }
-}
-
 void defragmentRecords(Page page) {
     unsigned numSlots = page->header->slots.size;
 
-    // Sorts slots in decreasing order of offset
-    // This allows records to be shifted as far right as possible without
-    // overwriting existing data
     RecordSlot **slots = malloc(sizeof(RecordSlot *) * numSlots);
     assert(slots != NULL);
 
@@ -356,29 +333,45 @@ void defragmentRecords(Page page) {
         slots[i] = &page->header->slots.slots[i];
     }
 
+    // Sorts pointers to slots in decreasing order of offset.
+    // This ensures there is no overlap when shifting records
     qsort(slots, numSlots, sizeof(RecordSlot *), &compareSlots);
 
     size_t recordStart = _PAGE_SIZE;
-    for (int i = 0; i < numSlots; i++) {
+
+    // Keeps track of old offset to first record
+    unsigned oldStart = page->header->recordStart;
+
+    unsigned numRecords = page->header->numRecords;
+
+    // Ensures that any empty slots are moved to the end
+    if (numRecords < page->header->slots.size) {
+        assert(slots[page->header->numRecords]->offset == 0);
+    }
+
+    for (int i = 0; i < numRecords; i++) {
         RecordSlot *slot = slots[i];
-        // Calculates expected offset of record from end of page using record
-        // size
+        slot->modified = true;
+
+        // Calculates expected offset of record from end of page
+        recordStart -= slot->size;
+
+        // Skips if record already in correct position
+        if (slot->offset == recordStart) {
+            continue;
+        }
 
         // Shifts record if size of record is less than offset to next record
-        // i.e. there is a gap between the pair of records
-        if (slot->size != 0 && slot->size != PAGE_TAIL &&
-            slot->offset != recordStart) {
-            recordStart -= slot->size;
+        memmove(page->ptr + recordStart, page->ptr + slot->offset,
+                sizeof(uint8_t) * slot->size);
 
-            size_t diff = recordStart - slot->offset;
-            modifyRecordOffsets(page, slot->offset, diff);
-            memmove(page->ptr + recordStart, page->ptr + slot->offset,
-                    sizeof(uint8_t) * slot->size);
-
-            slot->modified = true;
-            slot->offset = recordStart;
-            }
+        slot->modified = true;
+        slot->offset = recordStart;
     }
+
+    // Adds recovered space
+    page->header->freeSpace += recordStart - oldStart;
+
     page->header->recordStart = recordStart;
     page->header->modified = true;
 
