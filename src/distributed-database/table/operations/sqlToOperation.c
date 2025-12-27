@@ -130,10 +130,10 @@ static QueryAttributes parseSelectAttributes(char **cmd) {
 
     // Keeps track of if prev char was terminator to track when at start of new
     // attribute
-    bool prevNull = false;
+    bool prevNull = true;
 
     // Scans from beginning of attribute sequence, filling in the attribute list
-    while (strcmp(sql, FROM) != 0) {
+    while (idx < attrs->numAttributes) {
         if (prevNull && *sql != '\0') {
             attrs->attributes[idx++] = strdup(sql);
             prevNull = false;
@@ -150,6 +150,11 @@ static QueryAttributes parseSelectAttributes(char **cmd) {
 
 static bool parseKeyword(char **cmd, char *keyword) {
     char *sql = *cmd;
+
+    if (strlen(sql) == 0) {
+        return false;
+    }
+
     char *saveptr = NULL;
 
     char *token = strtok_r(sql, " ", &saveptr);
@@ -168,22 +173,29 @@ static char *parseTableName(char **cmd) {
     char *saveptr = NULL;
     char *token = strtok_r(sql, " ;", &saveptr);
 
+    if (token == NULL) {
+        return NULL;
+    }
+
     // Checks table name is valid
     if (!isValidStrToken(token)) {
         return NULL;
     }
+
+    char *name = strdup(token);
 
     token = strtok_r(NULL, " ;", &saveptr);
 
     // The next token must either be the start of a WHERE clause or the end of
     // the statement if no WHERE clause present
     if (token != NULL && strcmp(token, WHERE) != 0) {
+        free(name);
         return NULL;
     }
 
     *cmd = saveptr;
 
-    return strdup(token);;
+    return name;
 }
 
 static Operand getOperand(char **cmd) {
@@ -400,12 +412,6 @@ static Operation createSelect(char *sql) {
 
     operation->query.select.attributes = attrs;
 
-    if (!parseKeyword(&sql, "FROM")) {
-        free(operation);
-        free(attrs);
-        return NULL;
-    }
-
     // Parses the table name in the FROM clause
     char *tableName = parseTableName(&sql);
     if (tableName == NULL) {
@@ -416,7 +422,7 @@ static Operation createSelect(char *sql) {
 
     operation->tableName = tableName;
 
-    if (parseKeyword(&sql, "WHERE")) {
+    if (parseKeyword(&sql, WHERE)) {
         // Passes the condition in the WHERE clause
         Condition condition = parseCondition(&sql);
         if (condition == NULL) {
@@ -446,27 +452,11 @@ static Operation createCreateTable(char *sql) { return NULL; }
 
 Operation sqlToOperation(char *sql) {
     char *saveToken;
-    char *token = strtok_r(sql, DELIMS, &saveToken);
+    char *token = strtok_r(sql, " ", &saveToken);
 
-    enum CommandState state = START;
-
-    while (token != NULL) {
-        if (state == START) {
-            if (strcmp(token, SELECT_) == 0) { return createSelect(saveToken); }
-            if (strcmp(token, UPDATE) == 0) { return createUpdate(saveToken); }
-
-            if (strcmp(token, INSERT_START) == 0) { state = INSERT_STATE; }
-            else if (strcmp(token, DELETE_START) == 0) { state = DELETE_STATE; }
-            else if (strcmp(token, CREATE_START) == 0) { state = CREATE_STATE; }
-            else { return NULL; }
-        } else {
-            if (state == INSERT_STATE && strcmp(token, INSERT_END) == 0) { return createInsert(saveToken); }
-            if (state == DELETE_STATE && strcmp(token, FROM) == 0) { return createDelete(saveToken); }
-            if (state == CREATE_STATE && strcmp(token, CREATE_END) == 0) { return createCreateTable(saveToken); }
-
-            return NULL;
-        }
-        strtok_r(token, DELIMS, &saveToken);
+    if (strcmp(token, SELECT_) == 0) {
+        return createSelect(saveToken);
     }
+
     return NULL;
 }
