@@ -211,8 +211,9 @@ static Operand getOperand(char **cmd) {
             return NULL;
         }
 
+        char delim[] = { sql[0], '\0' };
         type = STR;
-        token = strtok_r(sql + 1, &sql[0], &saveptr);
+        token = strtok_r(sql + 1, delim, &saveptr);
     } else {
         token = strtok_r(sql, "; ", &saveptr);
     }
@@ -288,7 +289,9 @@ static ConditionType getOperator(char **cmd) {
     }
 
     switch (token[0]) {
-        case '=': return strlen(token) != 1 ? -1 : EQUALS;
+        case '=':
+            *cmd = saveptr;
+            return strlen(token) != 1 ? -1 : EQUALS;
         case '<': type = LESS_THAN; break;
         case '>': type = GREATER_THAN; break;
         default: return -1;
@@ -347,24 +350,33 @@ static Condition parseCondition(char **cmd) {
     Condition condition = malloc(sizeof(Condition));
     assert(condition != NULL);
 
-    // Attempts to parse the first token as an operator in case it is a single
-    // argument operator; cmd is unaffected if the token is not an operator
-    ConditionType type = getOperator(cmd);
+    // Parses the first token manually to determine if it is an operator or
+    // operand
+    char *saveptr;
+    char *initial = strtok_r(*cmd, " ", &saveptr);
 
-    Operand op1 = getOperand(cmd);
+    if (initial == NULL) {
+        free(condition);
+        return NULL;
+    }
 
-    if (type == NOT) {
-        // The next token must be the last in the statement
-        if (op1 == NULL || *cmd[0] != '\0') {
+    if (strcmp(initial, NOT_) == 0) {
+        Operand op1 = getOperand(&saveptr);
+
+        if (op1 == NULL || saveptr[0] != '\0') {
             free(condition);
             free(op1);
             return NULL;
         }
-        parseOneArg(condition, op1, type);
+
+        parseOneArg(condition, op1, NOT);
+        *cmd = saveptr;
         return condition;
     }
 
-    type = getOperator(cmd);
+    Operand op1 = getOperand(&initial);
+    *cmd = saveptr;
+    ConditionType type = getOperator(cmd);
 
     if (type == -1) {
         free(op1);
@@ -378,7 +390,7 @@ static Condition parseCondition(char **cmd) {
         parseTwoArg(condition, cmd, type, op1);
     }
 
-    if (*cmd[0] != ';') {
+    if (*cmd[0] != '\0') {
         free(condition);
         return NULL;
     }
