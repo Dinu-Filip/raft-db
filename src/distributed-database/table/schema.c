@@ -98,8 +98,8 @@ Schema *getSchema(TableInfo schemaInfo, char *tableName) {
     // Creates select operation to get records from schema table
     struct Condition condition;
     condition.type = EQUALS;
-    AttributeName relationName = SCHEMA_RELATION_NAME;
-    condition.value.twoArg.op1 = relationName;
+    // AttributeName relationName = SCHEMA_RELATION_NAME;
+    // condition.value.twoArg.op1 = relationName;
     condition.value.twoArg.op2 = createOperand(STR, tableName);
 
     QueryAttributes dictAttributes = createQueryAttributes(

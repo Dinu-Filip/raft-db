@@ -53,9 +53,9 @@ static bool evaluateTwoArg(ConditionType type, Field field, Operand value) {
 bool evaluate(Record record, Condition condition) {
     AttributeName attribute;
     if (condition->type == BETWEEN) {
-        attribute = condition->value.between.op1;
+        attribute = condition->value.between.op1->value.strOp;
     } else {
-        attribute = condition->value.twoArg.op1;
+        attribute = condition->value.twoArg.op1->value.strOp;
     }
 
     for (int i = 0; i < record->numValues; i++) {

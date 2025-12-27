@@ -166,7 +166,7 @@ struct ReadBuff {
     PROC(condition->type);                                                    \
     switch (condition->type) {                                                \
         case NOT: {                                                           \
-            PROCS(condition->value.oneArg.op1);                               \
+            PROCS(condition->value.oneArg.op1->value.strOp);                  \
             break;                                                            \
         }                                                                     \
         case EQUALS:                                                          \
@@ -176,13 +176,13 @@ struct ReadBuff {
         case GREATER_EQUALS:                                                  \
         case AND:                                                             \
         case OR: {                                                            \
-            PROCS(condition->value.twoArg.op1);                               \
+            PROCS(condition->value.twoArg.op1->value.strOp);                  \
             MALLOC(struct Operand, condition->value.twoArg.op2, 1);           \
             OPERAND(PROC, PROCS, MALLOC, FREE, condition->value.twoArg.op2);  \
             break;                                                            \
         }                                                                     \
         case BETWEEN: {                                                       \
-            PROCS(condition->value.between.op1);                              \
+            PROCS(condition->value.between.op1->value.strOp);                 \
             MALLOC(struct Operand, condition->value.between.op2, 1);          \
             OPERAND(PROC, PROCS, MALLOC, FREE, condition->value.between.op2); \
             MALLOC(struct Operand, condition->value.between.op3, 1);          \

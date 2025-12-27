@@ -234,7 +234,7 @@ static QueryResult getFreeSpaces(TableInfo spaceInfo, char *tableName,
 
     assert(recordSize <= INT_MAX);
     condition->value.twoArg.op2 = createOperand(INT, &recordSize);
-    condition->value.twoArg.op1 = SPACE_INFO_FREE_SPACE;
+    // condition->value.twoArg.op1 = SPACE_INFO_FREE_SPACE;
     condition->type = GREATER_THAN;
 
     Schema *spaceInfoSchema = initSpaceInfoSchema(tableName);

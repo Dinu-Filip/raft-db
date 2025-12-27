@@ -142,6 +142,8 @@ static void parseField(Field *field, char *attribute, AttributeType type,
         case BOOL:
             memcpy(&field->boolValue, record, field->size);
             break;
+        case ATTR:
+            exit(-1);
     }
 }
 

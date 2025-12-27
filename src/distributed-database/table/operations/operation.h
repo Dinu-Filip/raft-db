@@ -7,7 +7,7 @@
 
 // uint8_t is used to represent enums within the struct to make parsing and
 // encoding easier
-typedef enum { INT = 0, STR, VARSTR, FLOAT, BOOL } AttributeType;
+typedef enum { INT = 0, STR, VARSTR, FLOAT, BOOL, ATTR } AttributeType;
 typedef enum { SELECT, INSERT, UPDATE, DELETE, CREATE_TABLE } QueryType;
 typedef enum {
     EQUALS,
@@ -26,7 +26,7 @@ typedef struct QueryResult *QueryResult;
 
 typedef struct Operand *Operand;
 struct Operand {
-    uint8_t type;
+    AttributeType type;
     union {
         int intOp;
         char *strOp;
@@ -57,17 +57,17 @@ struct QueryTypes {
 
 typedef struct Condition *Condition;
 struct Condition {
-    uint8_t type;
+    ConditionType type;
     union {
         struct {
-            AttributeName op1;
+            Operand op1;
         } oneArg;
         struct {
-            AttributeName op1;
+            Operand op1;
             Operand op2;
         } twoArg;
         struct {
-            AttributeName op1;
+            Operand op1;
             Operand op2;
             Operand op3;
         } between;
@@ -77,7 +77,7 @@ struct Condition {
 typedef struct Operation *Operation;
 struct Operation {
     char *tableName;
-    uint8_t queryType;
+    QueryType queryType;
     union {
         struct {
             QueryAttributes attributes;

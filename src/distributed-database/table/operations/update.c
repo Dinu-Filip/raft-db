@@ -96,7 +96,7 @@ static void updateRecord(TableInfo tableInfo, Schema *schema,
         outputRecord(record);
 
         Condition condition = malloc(sizeof(struct Condition));
-        condition->value.twoArg.op1 = GLOBAL_ID_NAME;
+        // condition->value.twoArg.op1 = GLOBAL_ID_NAME;
         condition->value.twoArg.op2 =
             createOperand(INT, (uint8_t *)&record->globalIdx);
         condition->type = EQUALS;

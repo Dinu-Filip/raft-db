@@ -181,7 +181,8 @@ static Condition parseOneArgCondition(cJSON *conditionJson) {
     Condition condition = malloc(sizeof(struct Condition));
     assert(condition != NULL);
 
-    condition->value.oneArg.op1 = strdup(op1->valuestring);
+    condition->value.oneArg.op1->type = ATTR;
+    condition->value.oneArg.op1->value.strOp = strdup(op1->valuestring);
 
     return condition;
 }
@@ -200,7 +201,8 @@ static Condition parseTwoArgCondition(cJSON *conditionJson) {
     Condition condition = malloc(sizeof(struct Condition));
     assert(condition != NULL);
 
-    condition->value.twoArg.op1 = strdup(op1->valuestring);
+    condition->value.twoArg.op1->type = ATTR;
+    condition->value.twoArg.op1->value.strOp = strdup(op1->valuestring);
     condition->value.twoArg.op2 = op2Operand;
 
     return condition;
@@ -225,7 +227,8 @@ static Condition parseThreeArgCondition(cJSON *conditionJson) {
     Condition condition = malloc(sizeof(struct Condition));
     assert(condition != NULL);
 
-    condition->value.between.op1 = strdup(op1->valuestring);
+    condition->value.between.op1->type = ATTR;
+    condition->value.between.op1->value.strOp = strdup(op1->valuestring);
     condition->value.between.op2 = op2Operand;
     condition->value.between.op3 = op3Operand;
 
@@ -448,6 +451,7 @@ static cJSON *fieldToJson(Field field) {
         case BOOL:
             result = cJSON_CreateBool(field.boolValue);
             break;
+        default:;
     }
 
     assert(result != NULL);

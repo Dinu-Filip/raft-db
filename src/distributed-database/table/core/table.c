@@ -127,7 +127,7 @@ void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
     assert(cond != NULL);
 
     cond->type = EQUALS;
-    cond->value.twoArg.op1 = SPACE_INFO_ID;
+    // cond->value.twoArg.op1 = SPACE_INFO_ID;
 
     int id = page->pageId;
     assert(id <= INT_MAX);
