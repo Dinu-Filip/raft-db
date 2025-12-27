@@ -1,0 +1,6 @@
+#ifndef SELECTMULTIPLEATTRIBUTES_H
+#define SELECTMULTIPLEATTRIBUTES_H
+
+void testSelectMultipleAttributes();
+
+#endif //SELECTMULTIPLEATTRIBUTES_H

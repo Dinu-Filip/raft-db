@@ -134,7 +134,7 @@ static QueryAttributes parseSelectAttributes(char **cmd) {
 
     // Scans from beginning of attribute sequence, filling in the attribute list
     while (idx < attrs->numAttributes) {
-        if (prevNull && *sql != '\0') {
+        if (prevNull && *sql != '\0' && *sql != ' ' && *sql != ',') {
             attrs->attributes[idx++] = strdup(sql);
             prevNull = false;
         }
