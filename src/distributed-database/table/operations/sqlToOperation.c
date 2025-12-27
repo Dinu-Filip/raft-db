@@ -184,15 +184,6 @@ static char *parseTableName(char **cmd) {
 
     char *name = strdup(token);
 
-    token = strtok_r(NULL, " ;", &saveptr);
-
-    // The next token must either be the start of a WHERE clause or the end of
-    // the statement if no WHERE clause present
-    if (token != NULL && strcmp(token, WHERE) != 0) {
-        free(name);
-        return NULL;
-    }
-
     *cmd = saveptr;
 
     return name;
@@ -223,7 +214,7 @@ static Operand getOperand(char **cmd) {
         type = STR;
         token = strtok_r(sql + 1, &sql[0], &saveptr);
     } else {
-        token = strtok_r(sql, " ", &saveptr);
+        token = strtok_r(sql, "; ", &saveptr);
     }
 
     Operand op = malloc(sizeof(struct Operand));
@@ -321,9 +312,9 @@ static ConditionType getOperator(char **cmd) {
     return type;
 }
 
-static bool parseOneArg(Condition condition, char **cmd, ConditionType type) {
+static bool parseOneArg(Condition condition, Operand op, ConditionType type) {
     condition->type = type;
-    condition->value.oneArg.op1 = getOperand(cmd);
+    condition->value.oneArg.op1 = op;
 
     return true;
 }
@@ -364,12 +355,12 @@ static Condition parseCondition(char **cmd) {
 
     if (type == NOT) {
         // The next token must be the last in the statement
-        if (op1 == NULL || *cmd[0] != ';') {
+        if (op1 == NULL || *cmd[0] != '\0') {
             free(condition);
             free(op1);
             return NULL;
         }
-        parseOneArg(condition, cmd, type);
+        parseOneArg(condition, op1, type);
         return condition;
     }
 
