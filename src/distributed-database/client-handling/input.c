@@ -153,8 +153,8 @@ static QueryTypes parseQueryTypes(cJSON *operationJson) {
     }
 
     int sizesLength = getJsonArrayLength(sizes);
-    queryTypes->numSizes = sizesLength;
-    queryTypes->sizes = malloc(sizeof(size_t) * queryTypes->numSizes);
+    // queryTypes->numSizes = sizesLength;
+    // queryTypes->sizes = malloc(sizeof(size_t) * queryTypes->numSizes);
 
     i = 0;
     cJSON_ArrayForEach(element, sizes) {
@@ -164,7 +164,7 @@ static QueryTypes parseQueryTypes(cJSON *operationJson) {
             return NULL;
         }
 
-        queryTypes->sizes[i] = element->valueint;
+        // queryTypes->sizes[i] = element->valueint;
 
         i++;
     }
@@ -366,13 +366,13 @@ static Operation parseCreateTableOperation(Operation operation,
                                            cJSON *operationJson) {
     operation->queryType = CREATE_TABLE;
 
-    operation->query.createTable.attributes =
-        parseQueryAttributes(operationJson);
-    if (operation->query.createTable.attributes == NULL) {
-        free(operation);
-
-        return NULL;
-    }
+    // operation->query.createTable.attributes =
+    //     parseQueryAttributes(operationJson);
+    // if (operation->query.createTable.attributes == NULL) {
+    //     free(operation);
+    //
+    //     return NULL;
+    // }
 
     operation->query.createTable.types = parseQueryTypes(operationJson);
     if (operation->query.createTable.types == NULL) {

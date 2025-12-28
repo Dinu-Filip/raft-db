@@ -246,16 +246,17 @@ struct ReadBuff {
                       operation->query.delete.condition);                      \
             break;                                                             \
         }                                                                      \
-        case CREATE_TABLE: {                                                   \
-            MALLOC(struct QueryAttributes,                                     \
-                   operation->query.createTable.attributes, 1);                \
-            QUERY_ATTRIBUTES(PROC, PROCS, MALLOC, FREE,                        \
-                             operation->query.createTable.attributes);         \
-            MALLOC(struct QueryTypes, operation->query.createTable.types, 1);  \
-            QUERY_TYPES(PROC, PROCS, MALLOC, FREE,                             \
-                        operation->query.createTable.types);                   \
-            break;                                                             \
-        }                                                                      \
+        }
+        // case CREATE_TABLE: {                                                   \
+        //    MALLOC(struct QueryTypes,                                     \
+        //           operation->query.createTable.types, 1);                \
+        //    QUERY_ATTRIBUTES(PROC, PROCS, MALLOC, FREE,                        \
+        //                     operation->query.createTable.types);         \
+        //    MALLOC(struct QueryTypes, operation->query.createTable.types, 1);  \
+        //    QUERY_TYPES(PROC, PROCS, MALLOC, FREE,                             \
+        //                operation->query.createTable.types);                   \
+        //    break;                                                             \
+        // }                                                                      \
         default: {                                                             \
             LOG("Invalid operation type %d", operation->queryType);            \
             FREE();                                                            \

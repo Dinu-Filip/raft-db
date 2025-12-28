@@ -47,12 +47,17 @@ struct QueryAttributes {
     uint16_t numAttributes;
 };
 
+typedef struct QueryTypeDescriptor *QueryTypeDescriptor;
+struct QueryTypeDescriptor {
+    AttributeName name;
+    AttributeType type;
+    unsigned size;
+};
+
 typedef struct QueryTypes *QueryTypes;
 struct QueryTypes {
-    AttributeType *types;
-    uint16_t numTypes;
-    size_t *sizes;
-    uint16_t numSizes;
+    QueryTypeDescriptor *types;
+    unsigned numTypes;
 };
 
 typedef struct Condition *Condition;
@@ -96,7 +101,6 @@ struct Operation {
             Condition condition;
         } delete;
         struct {
-            QueryAttributes attributes;
             QueryTypes types;
         } createTable;
     } query;

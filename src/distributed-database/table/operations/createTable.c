@@ -100,28 +100,29 @@ void createTable(Operation operation) {
     initialiseTable(buffer);
 
     // Type for each attribute
-    unsigned int
-        typeSizes[operation->query.createTable.attributes->numAttributes];
-    // Index of variable length field for sizes array
+    // unsigned int
+    // typeSizes[operation->query.createTable.attributes->numAttributes]; Index
+    // of variable length field for sizes array
     int varFieldIdx = 0;
 
-    for (int i = 0; i < operation->query.createTable.attributes->numAttributes;
-         i++) {
-        const AttributeType type = operation->query.createTable.types->types[i];
-        if (type == VARSTR || type == STR) {
-            typeSizes[i] =
-                operation->query.createTable.types->sizes[varFieldIdx];
-            varFieldIdx++;
-        } else {
-            typeSizes[i] = getStaticTypeWidth(type);
-        }
-        LOG("Type size %d: %d", i, typeSizes[i]);
-    }
+    // for (int i = 0; i < operation->query.createTable.types->numTypes;
+    //    i++) {
+    //   const AttributeType type =
+    //   operation->query.createTable.types->types[i];
+    // if (type == VARSTR || type == STR) {
+    //        typeSizes[i] =
+    //            operation->query.createTable.types->sizes[varFieldIdx];
+    //    varFieldIdx++;
+    //    } else {
+    //      typeSizes[i] = getStaticTypeWidth(type);
+    //    }
+    // LOG("Type size %d: %d", i, typeSizes[i]);
+    // }
 
     // Writes the schema of the table
-    setSchema(buffer, operation->tableName,
-              operation->query.createTable.attributes, typeSizes,
-              operation->query.createTable.types);
+    // setSchema(buffer, operation->tableName,
+    //          operation->query.createTable.attributes, typeSizes,
+    //          operation->query.createTable.types);
 
     snprintf(buffer, MAX_FILE_NAME_LEN, "%s-space-inventory",
              operation->tableName);
