@@ -5,5 +5,5 @@
 #include "test/sql/selectTwoArg.h"
 
 int main() {
-    testSelectThreeArg();
+    testSelectMultipleAttributes();
 }

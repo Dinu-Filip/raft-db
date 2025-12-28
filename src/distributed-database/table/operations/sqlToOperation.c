@@ -11,7 +11,7 @@
 #define INSERT_START "insert"
 #define INSERT_END "into"
 
-#define UPDATE "update"
+#define UPDATE_ "update"
 
 #define DELETE_START "delete"
 
@@ -20,6 +20,7 @@
 
 #define FROM "from"
 #define WHERE "where"
+#define SET "set"
 
 #define DELIMS " ,\n\t"
 
@@ -189,7 +190,7 @@ static char *parseTableName(char **cmd) {
     return name;
 }
 
-static Operand getOperand(char **cmd) {
+static Operand getOperand(char **cmd, char *delims) {
     char *sql = *cmd;
 
     // Ensures that the operand is non-empty
@@ -215,7 +216,7 @@ static Operand getOperand(char **cmd) {
         type = STR;
         token = strtok_r(sql + 1, delim, &saveptr);
     } else {
-        token = strtok_r(sql, "; ", &saveptr);
+        token = strtok_r(sql, delims, &saveptr);
     }
 
     Operand op = malloc(sizeof(struct Operand));
@@ -325,7 +326,7 @@ static bool parseOneArg(Condition condition, Operand op, ConditionType type) {
 static bool parseTwoArg(Condition condition, char **cmd, ConditionType type, Operand op1) {
     condition->type = type;
     condition->value.twoArg.op1 = op1;
-    condition->value.twoArg.op2 = getOperand(cmd);
+    condition->value.twoArg.op2 = getOperand(cmd, "; ");
 
     return true;
 }
@@ -333,7 +334,7 @@ static bool parseTwoArg(Condition condition, char **cmd, ConditionType type, Ope
 static bool parseThreeArg(Condition condition, char **token, ConditionType type, Operand op1) {
     condition->type = type;
     condition->value.between.op1 = op1;
-    condition->value.between.op2 = getOperand(token);
+    condition->value.between.op2 = getOperand(token, "; ");
 
     // Enforces AND as separator for values of BETWEEN
     ConditionType sepOperator = getOperator(token);
@@ -342,7 +343,7 @@ static bool parseThreeArg(Condition condition, char **token, ConditionType type,
         return false;
     }
 
-    condition->value.between.op3 = getOperand(token);
+    condition->value.between.op3 = getOperand(token, "; ");
     return true;
 }
 
@@ -361,7 +362,7 @@ static Condition parseCondition(char **cmd) {
     }
 
     if (strcmp(initial, NOT_) == 0) {
-        Operand op1 = getOperand(&saveptr);
+        Operand op1 = getOperand(&saveptr, "; ");
 
         if (op1 == NULL || saveptr[0] != '\0') {
             free(condition);
@@ -374,7 +375,7 @@ static Condition parseCondition(char **cmd) {
         return condition;
     }
 
-    Operand op1 = getOperand(&initial);
+    Operand op1 = getOperand(&initial, "; ");
     *cmd = saveptr;
     ConditionType type = getOperator(cmd);
 
@@ -447,7 +448,53 @@ static Operation createSelect(char *sql) {
 
 static Operation createInsert(char *sql) { return NULL; }
 
-static Operation createUpdate(char *sql) { return NULL; }
+static bool parseUpdateAttributeValues(Operation operation, char **cmd) {
+    char *sql = *cmd;
+
+    char *delims = ", ";
+    unsigned numAttributes = 0;
+    unsigned size = 1;
+
+    AttributeName names[size];
+    Operand values[size];
+
+    char *saveptr;
+    char *token = strtok_r(sql, delims, &saveptr);
+
+    while (token != NULL && strcmp(token, WHERE) != 0) {
+        Operand op1 = getOperand(&token, delims);
+        ConditionType type = getOperator(&token);
+
+        if (type != EQUALS) {
+            for (int i = 0; i < numAttributes; i++) {
+                free(names[i]);
+                free(values[i]);
+                return false;
+            }
+        }
+
+        Operand op2 = getOperand(&token, delims);
+
+        names[numAttributes] = op1->value.strOp;
+        values[numAttributes] = op2;
+
+        free(op1);
+    }
+}
+
+static Operation createUpdate(char *sql) {
+    Operation operation = malloc(sizeof(struct Operation));
+    assert(operation != NULL);
+
+    char *tableName = parseTableName(&sql);
+
+    if (tableName == NULL) {
+        free(operation);
+        return NULL;
+    }
+
+    parseKeyword(&sql, SET);
+}
 
 static Operation createDelete(char *sql) { return NULL; }
 
@@ -459,6 +506,9 @@ Operation sqlToOperation(char *sql) {
 
     if (strcmp(token, SELECT_) == 0) {
         return createSelect(saveToken);
+    }
+    if (strcmp(token, UPDATE_) == 0) {
+        return createUpdate(saveToken);
     }
 
     return NULL;
