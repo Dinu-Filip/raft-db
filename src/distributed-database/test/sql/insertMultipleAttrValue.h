@@ -1,0 +1,6 @@
+#ifndef INSERTMULTIPLEATTRVALUE_H
+#define INSERTMULTIPLEATTRVALUE_H
+
+void testInsertMultipleAttrValue();
+
+#endif //INSERTMULTIPLEATTRVALUE_H

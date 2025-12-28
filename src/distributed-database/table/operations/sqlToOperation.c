@@ -206,6 +206,20 @@ static Operand getOperand(char **cmd, char *delims) {
         return op;
     }
 
+    if (strcmp(token, "true") == 0) {
+        op->type = BOOL;
+        op->value.boolOp = true;
+        *cmd = saveptr;
+        return op;
+    }
+
+    if (strcmp(token, "false") == 0) {
+        op->type = BOOL;
+        op->value.boolOp = false;
+        *cmd = saveptr;
+        return op;
+    }
+
     // Attempts to parse attribute name
     if (isValidStrToken(token)) {
         op->type = ATTR;
@@ -473,7 +487,7 @@ static unsigned parseList(char *cmd, char *delims, void ***dest, void *(*func)(c
     while (idx < size) {
         if (*token == '\0') {
             prevNull = true;
-        } else if (prevNull) {
+        } else if (prevNull && *token != ' ') {
             list[idx++] = func(token);
             prevNull = false;
         }
@@ -509,7 +523,7 @@ static Operation createInsert(char *sql) {
     operation->tableName = tableName;
 
     char *afterptr;
-    char *initial = strtok_r(sql, " (", &afterptr);
+    char *initial = sql[0] != '(' ? strtok_r(sql, "(", &afterptr) : sql + 1;
     char *saveptr;
     char *token = strtok_r(initial, ")", &saveptr);
 
@@ -521,14 +535,14 @@ static Operation createInsert(char *sql) {
         operation->query.insert.attributes = createUpdateQueryAttributes(names, numAttrs);
     }
 
-    sql = hasAttributeList ? afterptr : initial;
+    sql = hasAttributeList ? saveptr : initial;
 
     if (!parseKeyword(&sql, VALUES)) {
         free(operation);
         return NULL;
     }
 
-    token = strtok_r(sql, "(", &afterptr);
+    token = sql[0] != '(' ? strtok_r(sql, "(", &afterptr) : sql + 1;
     token = strtok_r(token, ")", &saveptr);
 
     if (token == NULL) {
