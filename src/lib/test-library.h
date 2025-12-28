@@ -51,5 +51,5 @@ static int outputIndent = 0;
     }
 #define ASSERT_NEQ(a, b) TEST(a != b)
 #define ASSERT_F(a, b, f) TEST(f(a, b))
-
+#define FAIL TEST(false)
 #define PRINT_SUMMARY printf("Passed %d / %d\n", numPassed, numTests);

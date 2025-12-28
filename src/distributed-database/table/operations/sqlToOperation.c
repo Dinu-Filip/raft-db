@@ -564,9 +564,8 @@ static Operation createUpdate(char *sql) {
         return NULL;
     }
 
-
     // Attempts to parse where clause if present
-    if (parseKeyword(&sql, WHERE)) {
+    if (*sql != '\0') {
         operation->query.update.condition = parseCondition(&sql);
     }
 

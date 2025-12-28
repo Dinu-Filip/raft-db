@@ -4,8 +4,9 @@
 #include "test/sql/selectThreeArg.h"
 #include "test/sql/selectTwoArg.h"
 #include "test/sql/updateMultipleAttributes.h"
+#include "test/sql/updateMultipleAttributesWithWhere.h"
 #include "test/sql/updateSingleAttribute.h"
 
 int main() {
-    testUpdateMultipleAttributes();
+    testUpdateMultipleAttributesWithWhere();
 }
