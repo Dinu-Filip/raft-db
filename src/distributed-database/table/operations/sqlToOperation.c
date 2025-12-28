@@ -32,32 +32,6 @@
 #define NOT_ "not"
 #define BETWEEN_ "between"
 
-enum CommandState {
-    START,
-    INSERT_STATE,
-    DELETE_STATE,
-    CREATE_STATE,
-    FROM_STATE,
-    WHERE_STATE,
-    END
-};
-
-enum ConditionState {
-    START_COND,
-    ONE_ARG,
-    TWO_ARG,
-    THREE_ARG,
-    END_COND
-};
-
-enum OperandState {
-    START_OP,
-    STR_DOUBLE_OP,
-    STR_SINGLE_OP,
-    NON_STR_OP,
-    END_OP
-};
-
 static bool isValidStrToken(const char *token) {
     // Ensures token is non-empty
     if (token[0] == '\0') {
@@ -402,6 +376,33 @@ static Condition parseCondition(char **cmd) {
     return condition;
 }
 
+static QueryAttributes createUpdateQueryAttributes(AttributeName *names, unsigned size) {
+    QueryAttributes attributes = malloc(sizeof(struct QueryAttributes));
+    assert(attributes != NULL);
+
+    attributes->attributes = malloc(sizeof(AttributeName) * size);
+    assert(attributes->attributes != NULL);
+
+    memcpy(attributes->attributes, names, size * sizeof(AttributeName));
+
+    attributes->numAttributes = size;
+    return attributes;
+}
+
+static QueryValues createUpdateQueryValues(Operand *values, unsigned size) {
+    QueryValues queryValues = malloc(sizeof(struct QueryValues));
+    assert(queryValues != NULL);
+
+    queryValues->values = malloc(sizeof(Operand) * size);
+    assert(queryValues->values != NULL);
+
+    memcpy(queryValues->values, values, size * sizeof(Operand));
+
+    queryValues->numValues = size;
+
+    return queryValues;
+}
+
 static Operation createSelect(char *sql) {
     Operation operation = malloc(sizeof(struct Operation));
     assert(operation != NULL);
@@ -459,6 +460,7 @@ static unsigned parseList(char *cmd, char *delims, void ***dest, void *(*func)(c
 
     while (token != NULL) {
         size++;
+        token = strtok_r(NULL, delims, &saveptr);
     }
 
     void **list = malloc(sizeof(void *) * size);
@@ -506,27 +508,28 @@ static Operation createInsert(char *sql) {
 
     operation->tableName = tableName;
 
+    char *afterptr;
+    char *initial = strtok_r(sql, " (", &afterptr);
     char *saveptr;
-    char *initial = strtok_r(sql, " (", &saveptr);
-    char *token = strtok_r(NULL, ")", &saveptr);
+    char *token = strtok_r(initial, ")", &saveptr);
 
     bool hasAttributeList = token != NULL;
 
     if (hasAttributeList) {
         AttributeName *names;
         unsigned numAttrs = parseList(token, ", ", (void ***)&names, strdup);
-        operation->query.insert.attributes = createQueryAttributes(numAttrs, names);
+        operation->query.insert.attributes = createUpdateQueryAttributes(names, numAttrs);
     }
 
-    sql = hasAttributeList ? saveptr : initial;
+    sql = hasAttributeList ? afterptr : initial;
 
     if (!parseKeyword(&sql, VALUES)) {
         free(operation);
         return NULL;
     }
 
-    strtok_r(sql, "(", &saveptr);
-    token = strtok_r(NULL, ")", &saveptr);
+    token = strtok_r(sql, "(", &afterptr);
+    token = strtok_r(token, ")", &saveptr);
 
     if (token == NULL) {
         free(operation);
@@ -535,36 +538,9 @@ static Operation createInsert(char *sql) {
 
     Operand *values;
     unsigned numValues = parseList(token, ", ", (void ***)&values, getOperandFromList);
-    operation->query.insert.values = createQueryValues(numValues, values);
+    operation->query.insert.values = createUpdateQueryValues(values, numValues);
 
     return operation;
-}
-
-static QueryAttributes createUpdateQueryAttributes(AttributeName *names, unsigned size) {
-    QueryAttributes attributes = malloc(sizeof(struct QueryAttributes));
-    assert(attributes != NULL);
-
-    attributes->attributes = malloc(sizeof(AttributeName) * size);
-    assert(attributes->attributes != NULL);
-
-    memcpy(attributes->attributes, names, size * sizeof(AttributeName));
-
-    attributes->numAttributes = size;
-    return attributes;
-}
-
-static QueryValues createUpdateQueryValues(Operand *values, unsigned size) {
-    QueryValues queryValues = malloc(sizeof(struct QueryValues));
-    assert(queryValues != NULL);
-
-    queryValues->values = malloc(sizeof(Operand) * size);
-    assert(queryValues->values != NULL);
-
-    memcpy(queryValues->values, values, size * sizeof(Operand));
-
-    queryValues->numValues = size;
-
-    return queryValues;
 }
 
 static bool parseUpdateAttributeValues(Operation operation, char **cmd) {

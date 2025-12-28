@@ -1,0 +1,6 @@
+#ifndef INSERTSINGLEATTRVALUE_H
+#define INSERTSINGLEATTRVALUE_H
+
+void testInsertSingleAttrValue();
+
+#endif //INSERTSINGLEATTRVALUE_H
