@@ -6,7 +6,7 @@
 #include "test-library.h"
 
 void testUpdateSingleAttribute() {
-    char sql[] = "update students set name = 'Dinu'";
+    char sql[] = "update students set name = 'Dinu';";
 
     Operation operation = sqlToOperation(sql);
 

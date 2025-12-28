@@ -480,7 +480,7 @@ static QueryValues createUpdateQueryValues(Operand *values, unsigned size) {
 static bool parseUpdateAttributeValues(Operation operation, char **cmd) {
     char *sql = *cmd;
 
-    char *delims = ", ";
+    char *delims = ", ;";
     unsigned numAttributes = 0;
 
     // Approximate maximum number of attribute-value pairs
@@ -533,7 +533,7 @@ static bool parseUpdateAttributeValues(Operation operation, char **cmd) {
     operation->query.update.attributes = createUpdateQueryAttributes(names, numAttributes);
     operation->query.update.values = createUpdateQueryValues(values, numAttributes);
 
-    LOG("%s", operation->query.update.values->values[0]->value.strOp);
+    *cmd = saveptr;
 
     return operation;
 }
@@ -594,7 +594,6 @@ Operation sqlToOperation(char *sql) {
 
     if (strcmp(token, UPDATE_) == 0) {
         Operation operation = createUpdate(saveToken);
-        LOG("%s", operation->query.update.values->values[0]->value.strOp);
 
         return operation;
     }

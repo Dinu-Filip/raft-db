@@ -1,0 +1,6 @@
+#ifndef UPDATEMULTIPLEATTRIBUTES_H
+#define UPDATEMULTIPLEATTRIBUTES_H
+
+void testUpdateMultipleAttributes();
+
+#endif //UPDATEMULTIPLEATTRIBUTES_H
