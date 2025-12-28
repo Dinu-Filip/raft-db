@@ -143,15 +143,6 @@ static QueryAttributes parseSelectAttributes(char **cmd) {
     return attrs;
 }
 
-static AttributeName parseAttribute(char **cmd) {
-    char *saveptr;
-    char *token = strtok_r(*cmd, " ;", &saveptr);
-
-    AttributeName attrName = isValidStrToken(token) ? strdup(token) : NULL;
-
-    return attrName;
-}
-
 static bool parseKeyword(char **cmd, char *keyword) {
     char *sql = *cmd;
 
@@ -161,6 +152,7 @@ static bool parseKeyword(char **cmd, char *keyword) {
 
     char *saveptr = NULL;
 
+    // Keyword must always be followed by a space
     char *token = strtok_r(sql, " ", &saveptr);
 
     if (strcmp(token, keyword) != 0) {
@@ -349,11 +341,18 @@ static QueryTypeDescriptor getQueryType(char *cmd) {
     descriptor->size = -1;
 
     char *saveptr = NULL;
+
+    // First parses attribute name
     char *token = strtok_r(cmd, " ", &saveptr);
 
+    // Checks attribute name is valid
     if (isValidStrToken(token)) {
         descriptor->name = strdup(token);
+    } else {
+        free(descriptor);
+        return NULL;
     }
+
     token = strtok_r(NULL, " ", &saveptr);
 
     if (strcmp(token, INT_) == 0) {
@@ -558,11 +557,10 @@ static unsigned parseList(char *cmd, char *delims, void ***dest,
                           void *(*func)(char *token)) {
     unsigned size = 0;
 
-    char *start = cmd;
-
     char *saveptr;
     char *token = strtok_r(cmd, delims, &saveptr);
 
+    // First counts number of tokens in list
     while (token != NULL) {
         size++;
         token = strtok_r(NULL, delims, &saveptr);
@@ -575,6 +573,8 @@ static unsigned parseList(char *cmd, char *delims, void ***dest,
     bool prevNull = true;
     int idx = 0;
 
+    // Iterates over delimiter-separated tokens and parses each individually,
+    // adding to list
     while (idx < size) {
         if (*token == '\0') {
             prevNull = true;
@@ -622,6 +622,7 @@ static Operation createInsert(char *sql) {
     bool hasAttributeList = *sql == '(';
     char *rest;
 
+    // Parses attribute list if present
     if (hasAttributeList) {
         char *token = strtok_r(sql + 1, ")", &rest);
         AttributeName *names;
@@ -641,6 +642,7 @@ static Operation createInsert(char *sql) {
         return NULL;
     }
 
+    // Separates list of values
     char *saveptr;
     char *token = sql[0] != '(' ? strtok_r(sql, "(", &saveptr) : sql + 1;
     token = strtok_r(token, ")", &saveptr);
@@ -650,6 +652,7 @@ static Operation createInsert(char *sql) {
         return NULL;
     }
 
+    // Parses list of values
     Operand *values;
     unsigned numValues =
         parseList(token, ", ", (void ***)&values, getOperandFromList);
