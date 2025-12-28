@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <string.h>
 
+#include "hashmap.h"
 #include "operation.h"
 
 #define SELECT_ "select"
@@ -448,12 +449,41 @@ static Operation createSelect(char *sql) {
 
 static Operation createInsert(char *sql) { return NULL; }
 
+static QueryAttributes createUpdateQueryAttributes(AttributeName *names, unsigned size) {
+    QueryAttributes attributes = malloc(sizeof(struct QueryAttributes));
+    assert(attributes != NULL);
+
+    attributes->attributes = malloc(sizeof(AttributeName) * size);
+    assert(attributes->attributes != NULL);
+
+    memcpy(attributes->attributes, names, size * sizeof(AttributeName));
+
+    attributes->numAttributes = size;
+    return attributes;
+}
+
+static QueryValues createUpdateQueryValues(Operand *values, unsigned size) {
+    QueryValues queryValues = malloc(sizeof(struct QueryValues));
+    assert(queryValues != NULL);
+
+    queryValues->values = malloc(sizeof(struct Operand) * size);
+    assert(queryValues->values != NULL);
+
+    memcpy(queryValues->values, values, size * sizeof(struct Operand));
+
+    queryValues->numValues = size;
+
+    return queryValues;
+}
+
 static bool parseUpdateAttributeValues(Operation operation, char **cmd) {
     char *sql = *cmd;
 
     char *delims = ", ";
     unsigned numAttributes = 0;
-    unsigned size = 1;
+
+    // Approximate maximum number of attribute-value pairs
+    unsigned size = strlen(sql) / 3;
 
     AttributeName names[size];
     Operand values[size];
@@ -463,7 +493,18 @@ static bool parseUpdateAttributeValues(Operation operation, char **cmd) {
 
     while (token != NULL && strcmp(token, WHERE) != 0) {
         Operand op1 = getOperand(&token, delims);
-        ConditionType type = getOperator(&token);
+
+        if (op1 == NULL) {
+            return false;
+        }
+
+        *cmd = saveptr;
+        ConditionType type = getOperator(cmd);
+
+        if (type == -1) {
+            free(op1);
+            return false;
+        }
 
         if (type != EQUALS) {
             for (int i = 0; i < numAttributes; i++) {
@@ -473,19 +514,30 @@ static bool parseUpdateAttributeValues(Operation operation, char **cmd) {
             }
         }
 
-        Operand op2 = getOperand(&token, delims);
+        Operand op2 = getOperand(cmd, delims);
+
+        if (op2 == NULL) {
+            free(op1);
+            return false;
+        }
 
         names[numAttributes] = op1->value.strOp;
         values[numAttributes] = op2;
 
         free(op1);
     }
+
+    operation->query.update.attributes = createUpdateQueryAttributes(names, numAttributes);
+    operation->query.update.values = createUpdateQueryValues(values, numAttributes);
+
+    return operation;
 }
 
 static Operation createUpdate(char *sql) {
     Operation operation = malloc(sizeof(struct Operation));
     assert(operation != NULL);
 
+    // Attempts to parse the table name
     char *tableName = parseTableName(&sql);
 
     if (tableName == NULL) {
@@ -493,7 +545,29 @@ static Operation createUpdate(char *sql) {
         return NULL;
     }
 
+    // Parses set keyword
     parseKeyword(&sql, SET);
+
+    // Parses attribute = value list
+    if (!parseUpdateAttributeValues(operation, &sql)) {
+        free(operation);
+        free(tableName);
+        return NULL;
+    }
+
+    // Attempts to parse where clause if present
+    if (parseKeyword(&sql, WHERE)) {
+        operation->query.update.condition = parseCondition(&sql);
+    }
+
+    // End of statement should have been reached
+    if (*sql != '\0') {
+        free(operation);
+        free(tableName);
+        return NULL;
+    }
+
+    return operation;
 }
 
 static Operation createDelete(char *sql) { return NULL; }
