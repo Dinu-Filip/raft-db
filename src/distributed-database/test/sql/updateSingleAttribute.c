@@ -1,5 +1,6 @@
 #include "updateSingleAttribute.h"
 
+#include "log.h"
 #include "table/operations/operation.h"
 #include "table/operations/sqlToOperation.h"
 #include "test-library.h"
@@ -15,8 +16,8 @@ void testUpdateSingleAttribute() {
     ASSERT_EQ(operation->query.update.attributes->numAttributes, 1)
     ASSERT_STR_EQ(operation->query.update.attributes->attributes[0], "name")
     ASSERT_EQ(operation->query.update.values->numValues, 1)
-    ASSERT_STR_EQ(operation->query.update.values->values[0]->value.strOp, 'Dinu')
     ASSERT_EQ(operation->query.update.values->values[0]->type, STR)
+    ASSERT_STR_EQ(operation->query.update.values->values[0]->value.strOp, "Dinu")
     FINISH_OUTER_TEST
     PRINT_SUMMARY
 }
