@@ -342,37 +342,37 @@ static ConditionType getOperator(char **cmd) {
     return type;
 }
 
-static QueryTypeDescriptor getQueryType(char **cmd) {
-    char *sql = *cmd;
-
+static QueryTypeDescriptor getQueryType(char *cmd) {
     QueryTypeDescriptor descriptor = malloc(sizeof(struct QueryTypes));
     assert(descriptor != NULL);
 
     descriptor->size = -1;
 
     char *saveptr = NULL;
-    char *token = strtok_r(sql, " ", &saveptr);
+    char *token = strtok_r(cmd, " ", &saveptr);
 
-    if (strcmp(token, INT) == 0) {
+    if (isValidStrToken(token)) {
+        descriptor->name = strdup(token);
+    }
+    token = strtok_r(NULL, " ", &saveptr);
+
+    if (strcmp(token, INT_) == 0) {
         descriptor->type = INT;
-        *cmd = saveptr;
         return descriptor;
     }
 
-    if (strcmp(token, "float") == 0) {
+    if (strcmp(token, FLOAT_) == 0) {
         descriptor->type = FLOAT;
-        *cmd = saveptr;
         return descriptor;
     }
 
-    if (strcmp(token, "bool") == 0) {
+    if (strcmp(token, BOOL_) == 0) {
         descriptor->type = BOOL;
-        *cmd = saveptr;
         return descriptor;
     }
 
     char *start = strtok_r(token, "(", &saveptr);
-    char *rawSize = strtok_r(start, ")", &saveptr);
+    char *rawSize = strtok_r(NULL, ")", &saveptr);
 
     char *end;
     int size = strtol(rawSize, &end, 10);
@@ -391,7 +391,6 @@ static QueryTypeDescriptor getQueryType(char **cmd) {
     }
 
     descriptor->size = size;
-    *cmd = saveptr;
     return descriptor;
 }
 
@@ -572,7 +571,7 @@ static unsigned parseList(char *cmd, char *delims, void ***dest,
     void **list = malloc(sizeof(void *) * size);
     assert(list != NULL);
 
-    token = start;
+    token = cmd;
     bool prevNull = true;
     int idx = 0;
 
@@ -580,7 +579,9 @@ static unsigned parseList(char *cmd, char *delims, void ***dest,
         if (*token == '\0') {
             prevNull = true;
         } else if (prevNull && strchr(delims, *token) == NULL) {
-            list[idx++] = func(token);
+            char *newToken = strdup(token);
+            list[idx++] = func(newToken);
+            free(newToken);
             prevNull = false;
         }
 
@@ -812,15 +813,38 @@ static Operation createCreateTable(char *sql) {
 
     operation->tableName = tableName;
 
-    char *saveptr;
-    char *typeList = strtok_r(sql, "(", &saveptr);
-    typeList = strtok_r(typeList, ")", &saveptr);
+    char *listStart = sql;
+
+    while (*listStart != '\0' && *listStart != '(') {
+        listStart++;
+    }
+
+    listStart++;
+
+    if (*listStart == '\0') {
+        free(operation);
+        free(tableName);
+        return NULL;
+    }
+
+    char *listEnd = sql + strlen(sql) - 1;
+
+    while (listEnd != sql && *listEnd != ')') {
+        listEnd--;
+    }
+
+    if (listEnd == listStart) {
+        free(operation);
+        return NULL;
+    }
+
+    *listEnd = '\0';
 
     QueryTypes types = malloc(sizeof(struct QueryTypes));
     assert(types != NULL);
 
     unsigned numTypes =
-        parseList(typeList, ",", (void ***)&types->types, getQueryType);
+        parseList(listStart, ",", (void ***)&types->types, getQueryType);
 
     if (types->types == NULL) {
         free(operation);
