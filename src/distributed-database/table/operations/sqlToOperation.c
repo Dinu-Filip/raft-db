@@ -522,27 +522,32 @@ static Operation createInsert(char *sql) {
 
     operation->tableName = tableName;
 
-    char *afterptr;
-    char *initial = sql[0] != '(' ? strtok_r(sql, "(", &afterptr) : sql + 1;
-    char *saveptr;
-    char *token = strtok_r(initial, ")", &saveptr);
+    while (*sql == ' ') {
+        sql++;
+    }
 
-    bool hasAttributeList = token != NULL;
+    bool hasAttributeList = *sql == '(';
+    char *rest;
 
     if (hasAttributeList) {
+        char *token = strtok_r(sql + 1, ")", &rest);
         AttributeName *names;
         unsigned numAttrs = parseList(token, ", ", (void ***)&names, strdup);
         operation->query.insert.attributes = createUpdateQueryAttributes(names, numAttrs);
+        sql = rest;
+    } else {
+        operation->query.insert.attributes = malloc(sizeof(struct QueryAttributes));
+        assert(operation->query.insert.attributes != NULL);
+        operation->query.insert.attributes->numAttributes = 0;
     }
-
-    sql = hasAttributeList ? saveptr : initial;
 
     if (!parseKeyword(&sql, VALUES)) {
         free(operation);
         return NULL;
     }
 
-    token = sql[0] != '(' ? strtok_r(sql, "(", &afterptr) : sql + 1;
+    char *saveptr;
+    char *token = sql[0] != '(' ? strtok_r(sql, "(", &saveptr) : sql + 1;
     token = strtok_r(token, ")", &saveptr);
 
     if (token == NULL) {
