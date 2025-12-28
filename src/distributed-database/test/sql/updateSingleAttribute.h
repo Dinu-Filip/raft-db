@@ -1,0 +1,6 @@
+#ifndef UPDATESINGLEATTRIBUTE_H
+#define UPDATESINGLEATTRIBUTE_H
+
+void testUpdateSingleAttribute();
+
+#endif //UPDATESINGLEATTRIBUTE_H

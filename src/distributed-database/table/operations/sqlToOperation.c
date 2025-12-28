@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "hashmap.h"
+#include "log.h"
 #include "operation.h"
 
 #define SELECT_ "select"
@@ -466,10 +467,10 @@ static QueryValues createUpdateQueryValues(Operand *values, unsigned size) {
     QueryValues queryValues = malloc(sizeof(struct QueryValues));
     assert(queryValues != NULL);
 
-    queryValues->values = malloc(sizeof(struct Operand) * size);
+    queryValues->values = malloc(sizeof(Operand) * size);
     assert(queryValues->values != NULL);
 
-    memcpy(queryValues->values, values, size * sizeof(struct Operand));
+    memcpy(queryValues->values, values, size * sizeof(Operand));
 
     queryValues->numValues = size;
 
@@ -525,10 +526,14 @@ static bool parseUpdateAttributeValues(Operation operation, char **cmd) {
         values[numAttributes] = op2;
 
         free(op1);
+        numAttributes++;
+        token = strtok_r(*cmd, delims, &saveptr);
     }
 
     operation->query.update.attributes = createUpdateQueryAttributes(names, numAttributes);
     operation->query.update.values = createUpdateQueryValues(values, numAttributes);
+
+    LOG("%s", operation->query.update.values->values[0]->value.strOp);
 
     return operation;
 }
@@ -537,6 +542,8 @@ static Operation createUpdate(char *sql) {
     Operation operation = malloc(sizeof(struct Operation));
     assert(operation != NULL);
 
+    operation->queryType = UPDATE;
+
     // Attempts to parse the table name
     char *tableName = parseTableName(&sql);
 
@@ -544,6 +551,8 @@ static Operation createUpdate(char *sql) {
         free(operation);
         return NULL;
     }
+
+    operation->tableName = tableName;
 
     // Parses set keyword
     parseKeyword(&sql, SET);
@@ -554,6 +563,7 @@ static Operation createUpdate(char *sql) {
         free(tableName);
         return NULL;
     }
+
 
     // Attempts to parse where clause if present
     if (parseKeyword(&sql, WHERE)) {
@@ -581,8 +591,12 @@ Operation sqlToOperation(char *sql) {
     if (strcmp(token, SELECT_) == 0) {
         return createSelect(saveToken);
     }
+
     if (strcmp(token, UPDATE_) == 0) {
-        return createUpdate(saveToken);
+        Operation operation = createUpdate(saveToken);
+        LOG("%s", operation->query.update.values->values[0]->value.strOp);
+
+        return operation;
     }
 
     return NULL;

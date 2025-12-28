@@ -25,7 +25,7 @@ target_link_libraries(networkingtest PRIVATE lib m)
 target_include_directories(networkingtest PRIVATE "${DISTRIBUTED_DATABASE_DIR}")
 
 file(GLOB_RECURSE TEST_SRC_FILES "${DISTRIBUTED_DATABASE_DIR}/*.c")
-list(FILTER TEST_SRC_FILES EXCLUDE REGEX "main.c|.*-test.c")
+list(FILTER TEST_SRC_FILES EXCLUDE REGEX ".*main\.c|.*-test.c")
 
 add_executable(dbtest ${TEST_SRC_FILES} ${HEADER_FILES})
 
