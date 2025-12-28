@@ -6,6 +6,7 @@
 
 #include "hashmap.h"
 #include "log.h"
+#include "networking/msg.h"
 #include "operation.h"
 
 #define SELECT_ "select"
@@ -382,7 +383,7 @@ static Condition parseCondition(char **cmd) {
         parseTwoArg(condition, cmd, type, op1);
     }
 
-    if (*cmd[0] != '\0') {
+    if (*cmd[0] != '\0' && *cmd[0] != ';') {
         free(condition);
         return NULL;
     }
@@ -664,7 +665,38 @@ static Operation createUpdate(char *sql) {
     return operation;
 }
 
-static Operation createDelete(char *sql) { return NULL; }
+static Operation createDelete(char *sql) {
+    if (!parseKeyword(&sql, FROM)) {
+        return NULL;
+    }
+    Operation operation = malloc(sizeof(struct Operation));
+    assert(operation != NULL);
+
+    operation->queryType = DELETE;
+
+    char *tableName = parseTableName(&sql);
+    if (tableName == NULL) {
+        return NULL;
+    }
+
+    operation->tableName = tableName;
+
+    if (!parseKeyword(&sql, WHERE)) {
+        free(tableName);
+        free(operation);
+        return NULL;
+    }
+
+    Condition condition = parseCondition(&sql);
+    if (condition == NULL) {
+        free(tableName);
+        free(operation);
+        return NULL;
+    }
+
+    operation->query.delete.condition = condition;
+    return operation;
+}
 
 static Operation createCreateTable(char *sql) { return NULL; }
 
@@ -682,6 +714,10 @@ Operation sqlToOperation(char *sql) {
 
     if (strcmp(token, INSERT_START) == 0) {
         return createInsert(saveToken);
+    }
+
+    if (strcmp(token, DELETE_START) == 0) {
+        return createDelete(saveToken);
     }
 
     return NULL;
