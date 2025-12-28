@@ -23,6 +23,7 @@
 #define FROM "from"
 #define WHERE "where"
 #define SET "set"
+#define VALUES "values"
 
 #define DELIMS " ,\n\t"
 
@@ -448,7 +449,96 @@ static Operation createSelect(char *sql) {
     return operation;
 }
 
-static Operation createInsert(char *sql) { return NULL; }
+static unsigned parseList(char *cmd, char *delims, void ***dest, void *(*func)(char *token)) {
+    unsigned size = 0;
+
+    char *start = cmd;
+
+    char *saveptr;
+    char *token = strtok_r(cmd, delims, &saveptr);
+
+    while (token != NULL) {
+        size++;
+    }
+
+    void **list = malloc(sizeof(void *) * size);
+    assert(list != NULL);
+
+    token = start;
+    bool prevNull = true;
+    int idx = 0;
+
+    while (idx < size) {
+        if (*token == '\0') {
+            prevNull = true;
+        } else if (prevNull) {
+            list[idx++] = func(token);
+            prevNull = false;
+        }
+
+        token++;
+    }
+
+    *dest = list;
+    return size;
+}
+
+static Operand getOperandFromList(char *token) {
+    return getOperand(&token, ", ;");
+}
+
+static Operation createInsert(char *sql) {
+    if (!parseKeyword(&sql, INSERT_END)) {
+        return NULL;
+    }
+
+    Operation operation = malloc(sizeof(struct Operation));
+    assert(operation != NULL);
+
+    operation->queryType = INSERT;
+
+    char *tableName = parseTableName(&sql);
+
+    if (tableName == NULL) {
+        free(operation);
+        return NULL;
+    }
+
+    operation->tableName = tableName;
+
+    char *saveptr;
+    char *initial = strtok_r(sql, " (", &saveptr);
+    char *token = strtok_r(NULL, ")", &saveptr);
+
+    bool hasAttributeList = token != NULL;
+
+    if (hasAttributeList) {
+        AttributeName *names;
+        unsigned numAttrs = parseList(token, ", ", (void ***)&names, strdup);
+        operation->query.insert.attributes = createQueryAttributes(numAttrs, names);
+    }
+
+    sql = hasAttributeList ? saveptr : initial;
+
+    if (!parseKeyword(&sql, VALUES)) {
+        free(operation);
+        return NULL;
+    }
+
+    strtok_r(sql, "(", &saveptr);
+    token = strtok_r(NULL, ")", &saveptr);
+
+    if (token == NULL) {
+        free(operation);
+        return NULL;
+    }
+
+    Operand *values;
+    unsigned numValues = parseList(token, ", ", (void ***)&values, getOperandFromList);
+    operation->query.insert.values = createQueryValues(numValues, values);
+
+    return operation;
+}
 
 static QueryAttributes createUpdateQueryAttributes(AttributeName *names, unsigned size) {
     QueryAttributes attributes = malloc(sizeof(struct QueryAttributes));
@@ -592,9 +682,11 @@ Operation sqlToOperation(char *sql) {
     }
 
     if (strcmp(token, UPDATE_) == 0) {
-        Operation operation = createUpdate(saveToken);
+        return createUpdate(saveToken);
+    }
 
-        return operation;
+    if (strcmp(token, INSERT_START) == 0) {
+        return createInsert(saveToken);
     }
 
     return NULL;
