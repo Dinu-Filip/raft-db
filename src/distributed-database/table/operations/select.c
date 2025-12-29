@@ -67,7 +67,12 @@ QueryResult selectFrom(TableInfo tableInfo, Schema *schema, Condition cond,
         // Selects record if there is either no condition or the condition
         // evaluates to true
         if (cond == NULL || evaluate(record, cond)) {
-            formatRecord(record, attributes);
+            // If attribute list is empty, then * was supplied so record does
+            // not need to be formatted
+            if (attributes->numAttributes > 0) {
+                formatRecord(record, attributes);
+            }
+
             addRecord(recordArray, record);
         } else {
             // Frees records that are not selected
