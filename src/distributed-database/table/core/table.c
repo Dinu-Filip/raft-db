@@ -1,18 +1,16 @@
 #include "table.h"
 
 #include <assert.h>
-#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "../db-utils.h"
-#include "../schema.h"
 #include "../operations/update.h"
+#include "../schema.h"
 #include "log.h"
 #include "pages.h"
-#include "../operations/operation.h"
+#include "table/operations/sqlToOperation.h"
 
 #define INITIAL_NUM_PAGES 0
 #define INITIAL_START_PAGE (-1)
@@ -123,40 +121,18 @@ void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
                           Page page) {
     LOG("Update space inventory\n");
 
-    Condition cond = malloc(sizeof(struct Condition));
-    assert(cond != NULL);
-
-    cond->type = EQUALS;
-    // cond->value.twoArg.op1 = SPACE_INFO_ID;
-
     int id = page->pageId;
-    assert(id <= INT_MAX);
-    cond->value.twoArg.op2 = createOperand(INT, &id);
-
     int freeSpace = page->header->freeSpace;
-
-    LOG("Free space: %d\n", freeSpace);
-    assert(freeSpace <= INT_MAX);
-
     Schema *spaceInfoSchema = initSpaceInfoSchema(tableName);
-    QueryAttributes updateSpaceAttributes =
-        createQueryAttributes(1, SPACE_INFO_FREE_SPACE);
-    QueryValues updateSpaceValues =
-        createQueryValues(1, createOperand(INT, &freeSpace));
-    QueryValues freeSpaceQueryValues =
-        createQueryValues(1, createOperand(INT, &freeSpace));
 
-    // Updates free space of page in space inventory
-    updateTable(spaceInventory, NULL, updateSpaceAttributes,
-                freeSpaceQueryValues, cond, spaceInfoSchema);
-    extendedDisplayTable(tableName, FREE_MAP);
+    // Update space inventory table with new free space in page
+    char template[] = "update %s set %s = %d where id = %d;";
+    char sql[100];
 
-    free(cond->value.twoArg.op2);
-    free(cond);
+    snprintf(sql, sizeof(sql), template, SPACE_INFO_FREE_SPACE, freeSpace, id);
+    updateOperation(spaceInventory, NULL, spaceInfoSchema, sqlToOperation(sql));
+
     free(spaceInfoSchema);
-    freeQueryAttributes(updateSpaceAttributes);
-    freeQueryValues(updateSpaceValues);
-    freeQueryValues(freeSpaceQueryValues);
 }
 
 void closeTable(TableInfo tableInfo) {

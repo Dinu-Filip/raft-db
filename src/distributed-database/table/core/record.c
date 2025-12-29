@@ -105,8 +105,8 @@ Record parseQuery(Schema *schema, QueryAttributes attributes,
 
     record->size = recordSize;
 
-    // Number of attribute values including global index
-    record->numValues = attributes->numAttributes + 1;
+    // Number of attribute values excluding global index
+    record->numValues = attributes->numAttributes;
 
     LOG("RECORD PARSE SUCCESSFUL");
     return record;
@@ -310,4 +310,12 @@ void outputRecord(Record record) {
         outputField(field, 0);
         fprintf(stderr, "\n");
     }
+}
+
+void removeRecord(Page page, RecordSlot *slot, size_t recordSize) {
+    slot->size = 0;
+    slot->modified = true;
+    page->header->modified = true;
+    page->header->freeSpace += recordSize + SLOT_SIZE;
+    page->header->numRecords--;
 }

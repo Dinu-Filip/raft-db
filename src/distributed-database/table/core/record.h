@@ -85,4 +85,6 @@ extern void outputRecord(Record record);
  */
 extern void initialiseRecordIterator(RecordIterator iterator);
 
+extern void removeRecord(Page page, RecordSlot *slot, size_t recordSize);
+
 #endif //RECORD_H

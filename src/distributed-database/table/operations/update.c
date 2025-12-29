@@ -8,26 +8,9 @@
 #include "../core/pages.h"
 #include "../core/record.h"
 #include "../core/table.h"
-#include "../db-utils.h"
-#include "delete.h"
 #include "insert.h"
 #include "log.h"
 #include "operation.h"
-#include "select.h"
-
-static void updatePageHeaderUpdate(Page page, Record record, uint16_t oldSize,
-                                   RecordSlot *slot, uint16_t recordStart) {
-    LOG("Update page header of page %d\n", page->pageId);
-    // Updates free space log in page header
-    page->header->freeSpace -= oldSize - record->size;
-    page->header->modified = true;
-
-    assert(record->size <= INT16_MAX);
-    slot->size = record->size;
-    slot->offset = recordStart;
-
-    slot->modified = true;
-}
 
 static void updateField(Field *field, Operand op) {
     switch (field->type) {
@@ -54,7 +37,7 @@ static void updateField(Field *field, Operand op) {
     }
 }
 
-static void updateRecord(TableInfo tableInfo, Schema *schema,
+static void updateRecord(TableInfo tableInfo,
                          TableInfo spaceMap, Record record, Page page,
                          QueryAttributes queryAttributes,
                          QueryValues queryValues, RecordIterator iterator) {
@@ -64,50 +47,55 @@ static void updateRecord(TableInfo tableInfo, Schema *schema,
         for (int i = 0; i < queryAttributes->numAttributes; i++) {
             AttributeName attribute = queryAttributes->attributes[i];
             Field *field = &record->fields[j];
+
+            // Skips if attribute and field do not match
             if (strcmp(field->attribute, attribute) == 0) {
-                int oldFieldSize = field->size;
-                if (field->type == VARSTR || field->type == STR) {
-                    free(field->stringValue);
-                }
-                updateField(field, queryValues->values[i]);
-                if (field->type == VARSTR) {
-                    record->size += field->size - oldFieldSize;
-                }
+                continue;
+            }
+
+            // Size of field before update
+            unsigned oldFieldSize = field->size;
+
+            // Contents of string field were dynamically allocated
+            if (field->type == VARSTR || field->type == STR) {
+                free(field->stringValue);
+            }
+
+            // Updates field with new value
+            updateField(field, queryValues->values[i]);
+
+            // Only variable-length string can change size of record
+            if (field->type == VARSTR) {
+                record->size += field->size - oldFieldSize;
             }
         }
     }
-    outputRecord(record);
 
-    if (record->size <= oldSize) {
-        LOG("Update record in place\n");
-        outputRecord(record);
-        uint16_t recordStart = page->header->recordStart - record->size;
-        writeRecord(page->ptr + recordStart, record);
-        updatePageHeaderUpdate(page, record, oldSize, iterator->lastSlot,
-                               recordStart);
-        Record newRecord = parseRecord(page->ptr + recordStart, schema);
-        LOG("New record\n");
-        outputRecord(newRecord);
-        defragmentRecords(iterator->page);
+    if (record->size > oldSize) {
+        // Record cannot fit in old position so needs to be removed
+        removeRecord(page, iterator->lastSlot, record->size);
+
+        // Defragments page to remove extra space
+        defragmentRecords(page);
         updatePage(tableInfo, page);
-        freeRecord(newRecord);
-    } else {
-        LOG("Relocate record\n");
-        outputRecord(record);
 
-        Condition condition = malloc(sizeof(struct Condition));
-        // condition->value.twoArg.op1 = GLOBAL_ID_NAME;
-        condition->value.twoArg.op2 =
-            createOperand(INT, (uint8_t *)&record->globalIdx);
-        condition->type = EQUALS;
-        LOG("Deleting entries with global idx %d\n", record->globalIdx);
-        deleteFrom(tableInfo, spaceMap, schema, condition);
-        extendedDisplayTable(tableInfo->name, RELATION);
+        // Updates space inventory for page
+        updateSpaceInventory(spaceMap->name, spaceMap, page);
+
         // Insertion will find new page in which to allocate record
-        // If record is iterated again, then it will be rewritten in place
-        // with no further reallocation
-        insertRecord(tableInfo, spaceMap, schema, record, RELATION);
-        free(condition);
+        insertRecord(tableInfo, spaceMap, record, RELATION);
+        return;
+    }
+
+    uint8_t *recordPtr = page->ptr + iterator->lastSlot->offset;
+    writeRecord(recordPtr, record);
+
+    // Record takes up less space than before so page needs to be defragmented
+    if (record->size < oldSize) {
+        LOG("Update record in place\n");
+        defragmentRecords(iterator->page);
+        updateSpaceInventory(spaceMap->name, spaceMap, page);
+        updatePage(tableInfo, page);
     }
 }
 
@@ -119,15 +107,18 @@ void updateTable(TableInfo tableInfo, TableInfo spaceMap,
 
     // Iterates through records, updating those that satisfy condition
     Record record = iterateRecords(tableInfo, schema, &iterator, true);
+
     while (record != NULL) {
-        outputRecord(record);
+        // Updates record that satisfies condition
         if (evaluate(record, cond)) {
-            updateRecord(tableInfo, schema, spaceMap, record, iterator.page,
+            updateRecord(tableInfo, spaceMap, record, iterator.page,
                          queryAttributes, queryValues, &iterator);
         }
+
         freeRecord(record);
         record = iterateRecords(tableInfo, schema, &iterator, true);
     }
+
     freeRecordIterator(&iterator);
 }
 

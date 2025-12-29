@@ -1,7 +1,6 @@
 #include "createTable.h"
 
 #include <assert.h>
-#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -41,7 +40,7 @@ static void setSchema(char *tableName, QueryTypes descriptors) {
         QueryTypeDescriptor type = descriptors->types[i];
         if (type->type != VARSTR) {
             snprintf(sql, sizeof(sql), template, schemaName, type->type, idx, type->size, type->name);
-            insertOperation(schemaInfo, NULL, dictSchema, sqlToOperation(sql));
+            insertOperation(schemaInfo, NULL, dictSchema, sqlToOperation(sql), SCHEMA);
             idx++;
         }
     }
@@ -51,7 +50,7 @@ static void setSchema(char *tableName, QueryTypes descriptors) {
         QueryTypeDescriptor type = descriptors->types[i];
         if (type->type == VARSTR) {
             snprintf(sql, sizeof(sql), template, schemaName, type->type, idx, type->size, type->name);
-            insertOperation(schemaInfo, NULL, dictSchema, sqlToOperation(sql));
+            insertOperation(schemaInfo, NULL, dictSchema, sqlToOperation(sql), SCHEMA);
             idx++;
         }
     }

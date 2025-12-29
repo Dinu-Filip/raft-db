@@ -39,7 +39,7 @@ QueryResult executeOperation(Operation operation) {
             res = selectOperation(relationInfo, schema, operation);
             break;
         case INSERT:
-            insertOperation(relationInfo, spaceInventory, schema, operation);
+            insertOperation(relationInfo, spaceInventory, schema, operation, RELATION);
             break;
         case UPDATE:
             updateOperation(relationInfo, spaceInventory, schema, operation);
