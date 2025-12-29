@@ -1,5 +1,6 @@
 #include "conditions.h"
 
+#include <assert.h>
 #include <string.h>
 
 #include "core/record.h"
@@ -17,7 +18,7 @@
         case BOOL:                                                     \
             return field.boolValue op value->value.boolOp;             \
         default:                                                       \
-            return false;                                              \
+            exit(-1);                                                  \
     }
 
 static bool evaluateBetween(Field field, Operand value1, Operand value2) {
@@ -29,7 +30,17 @@ static bool evaluateBetween(Field field, Operand value1, Operand value2) {
             return value1->value.floatOp <= field.floatValue &&
                    field.floatValue <= value2->value.floatOp;
         default:
-            return false;
+            exit(-1);
+    }
+}
+
+static bool evaluateOneArg(ConditionType type, Field field) {
+    switch (type) {
+        case NOT:
+            assert(field.type == BOOL);
+            return !field.boolValue;
+        default:
+            exit(-1);
     }
 }
 
@@ -54,6 +65,8 @@ bool evaluate(Record record, Condition condition) {
     AttributeName attribute;
     if (condition->type == BETWEEN) {
         attribute = condition->value.between.op1->value.strOp;
+    } else if (condition->type == NOT) {
+        attribute = condition->value.oneArg.op1->value.strOp;
     } else {
         attribute = condition->value.twoArg.op1->value.strOp;
     }
@@ -67,6 +80,11 @@ bool evaluate(Record record, Condition condition) {
                 Operand op3 = condition->value.between.op3;
                 return evaluateBetween(field, op2, op3);
             }
+
+            if (condition->type == NOT) {
+                return evaluateOneArg(condition->type, field);
+            }
+
             Operand op = condition->value.twoArg.op2;
             return evaluateTwoArg(condition->type, field, op);
         }
