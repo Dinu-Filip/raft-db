@@ -111,24 +111,24 @@ Schema *getSchema(TableInfo schemaInfo, char *tableName) {
         selectFrom(schemaInfo, dictSchema, &condition, dictAttributes);
 
     LOG("Checking schema record output");
-    LOG("Num records: %d\n", result->numRecords);
-
+    LOG("Num records: %d\n", result->records->size);
+    unsigned numRecords = result->records->size;
     // Sorts schema records based on index in schema
-    qsort(result->records->records, result->numRecords, sizeof(Record),
+    qsort(result->records->records, numRecords, sizeof(Record),
           schemaRecordCompare);
 
-    schema->attributes = malloc(sizeof(uint8_t *) * result->numRecords);
+    schema->attributes = malloc(sizeof(uint8_t *) * numRecords);
     assert(schema->attributes != NULL);
 
-    schema->attributeTypes = malloc(sizeof(uint8_t *) * result->numRecords);
+    schema->attributeTypes = malloc(sizeof(uint8_t *) * numRecords);
     assert(schema->attributeTypes != NULL);
 
-    schema->attributeSizes = malloc(sizeof(uint8_t *) * result->numRecords);
+    schema->attributeSizes = malloc(sizeof(uint8_t *) * numRecords);
     assert(schema->attributeSizes != NULL);
 
     // Parses records into schema, maintaining order of attributes in original
     // schema
-    for (int i = 0; i < result->numRecords; i++) {
+    for (int i = 0; i < numRecords; i++) {
         Record record = result->records->records[i];
         schema->attributes[i] =
             strdup(record->fields[ATTRIBUTE_NAME_IDX].stringValue);
@@ -137,7 +137,7 @@ Schema *getSchema(TableInfo schemaInfo, char *tableName) {
         schema->attributeSizes[i] = record->fields[ATTRIBUTE_SIZE_IDX].intValue;
     }
 
-    schema->numAttributes = result->numRecords;
+    schema->numAttributes = numRecords;
 
     freeRecordArray(result->records);
     free(result);

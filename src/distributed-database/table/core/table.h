@@ -69,7 +69,6 @@ struct TableInfo {
 typedef struct QueryResult *QueryResult;
 struct QueryResult {
     RecordArray records;
-    int numRecords;
 };
 
 /**

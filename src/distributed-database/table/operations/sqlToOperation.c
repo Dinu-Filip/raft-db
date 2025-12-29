@@ -92,6 +92,9 @@ static QueryAttributes parseSelectAttributes(char **cmd) {
             free(attrs);
             return NULL;
         }
+
+        *cmd = saveptr;
+        return attrs;
     }
 
     while (token != NULL && strcmp(token, FROM) != 0) {
@@ -532,6 +535,7 @@ static Operation createSelect(char *sql) {
     }
 
     operation->tableName = tableName;
+    operation->query.select.condition = NULL;
 
     if (parseKeyword(&sql, WHERE)) {
         // Passes the condition in the WHERE clause

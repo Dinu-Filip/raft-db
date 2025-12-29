@@ -10,12 +10,12 @@
 #include "../core/table.h"
 #include "log.h"
 
-static void filterRecord(Record record, QueryAttributes attributes) {
+static void formatRecord(Record record, QueryAttributes attributes) {
     // Filters out fields that are not specified in Operation
 
     size_t newSize = 0;
-    size_t newNumFields = attributes->numAttributes;
-    Field fields[record->numValues];
+    size_t numAttributes = attributes->numAttributes;
+    Field fields[numAttributes];
 
     for (int j = 0; j < record->numValues; j++) {
         bool added = false;
@@ -37,9 +37,13 @@ static void filterRecord(Record record, QueryAttributes attributes) {
         }
     }
 
-    memcpy(record->fields, fields, sizeof(Field) * newNumFields);
+    // Reallocates fields array to hold fields corresponding to given attributes
+    record->fields = realloc(record->fields, sizeof(Field) * numAttributes);
+    assert(record->fields != NULL);
 
-    record->numValues = newNumFields;
+    memcpy(record->fields, fields, sizeof(Field) * numAttributes);
+
+    record->numValues = numAttributes;
     record->size = newSize;
 }
 
@@ -48,8 +52,7 @@ QueryResult selectFrom(TableInfo tableInfo, Schema *schema, Condition cond,
     QueryResult result = malloc(sizeof(struct QueryResult));
     assert(result != NULL);
 
-    result->numRecords = 0;
-
+    // Initialises array to hold records
     RecordArray recordArray = createRecordArray();
     assert(recordArray != NULL);
 
@@ -61,14 +64,16 @@ QueryResult selectFrom(TableInfo tableInfo, Schema *schema, Condition cond,
     Record record = iterateRecords(tableInfo, schema, &iterator, true);
 
     while (record != NULL) {
-        if (evaluate(record, cond)) {
-            filterRecord(record, attributes);
+        // Selects record if there is either no condition or the condition
+        // evaluates to true
+        if (cond == NULL || evaluate(record, cond)) {
+            formatRecord(record, attributes);
             addRecord(recordArray, record);
-            result->numRecords++;
         } else {
-            // Frees records that are not returned
+            // Frees records that are not selected
             freeRecord(record);
         }
+
         record = iterateRecords(tableInfo, schema, &iterator, true);
     }
 

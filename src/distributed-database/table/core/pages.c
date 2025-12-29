@@ -293,7 +293,7 @@ Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
     QueryResult spaceMapRes =
         getFreeSpaces(spaceInfo, tableInfo->name, recordSize);
 
-    if (spaceMapRes->numRecords == 0) {
+    if (spaceMapRes->records->size == 0) {
         LOG("ADD NEW PAGE TO SPACE MAP\n");
         Page page = addPage(tableInfo);
 
