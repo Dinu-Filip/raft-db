@@ -169,7 +169,7 @@ Record parseRecord(uint8_t *ptr, Schema *schema) {
     // Read offset to start of static fields
     uint16_t numVars;
     memcpy(&numVars, ptr, RECORD_HEADER_WIDTH);
-    uint8_t *recordStart = ptr + numVars * OFFSET_WIDTH;
+    uint8_t *recordStart = ptr + RECORD_HEADER_WIDTH + numVars * OFFSET_WIDTH;
 
     // Reads the global index
     memcpy(&record->globalIdx, recordStart, GLOBAL_ID_WIDTH);
@@ -233,6 +233,7 @@ void writeRecord(uint8_t *ptr, Record record) {
     }
     // Adds for sentinel offset
     numVar++;
+    varOffset += GLOBAL_ID_WIDTH;
 
     // Writes offset to start of static fields
     memcpy(ptr, &numVar, RECORD_HEADER_WIDTH);
