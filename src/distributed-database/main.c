@@ -6,7 +6,8 @@
 #include "test/sql/deleteFromTable.h"
 #include "test/sql/updateMultipleAttributes.h"
 #include "test/table/recordParseFixedLength.h"
+#include "test/table/recordParseVarLength.h"
 
 int main() {
-    testRecordParseFixedLength();
+    testRecordParseVarLength();
 }

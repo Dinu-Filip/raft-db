@@ -19,15 +19,15 @@
 void testRecordParseVarLength() {
     Schema schema;
 
-    schema.numAttrs = 7;
+    schema.numAttrs = 6;
     schema.attrInfos = malloc(sizeof(AttrInfo) * schema.numAttrs);
 
     Schema *s = &schema;
-    ATTR_CREATE(s, 0, "age", INT, INT_WIDTH, INT_WIDTH);
-    ATTR_CREATE(s, 1, "height", FLOAT, FLOAT_WIDTH, INT_WIDTH * 2);
-    ATTR_CREATE(s, 2, "student", BOOL, BOOL_WIDTH, INT_WIDTH * 2 + FLOAT_WIDTH);
+    ATTR_CREATE(s, 0, "age", INT, INT_WIDTH, 0);
+    ATTR_CREATE(s, 1, "height", FLOAT, FLOAT_WIDTH, INT_WIDTH);
+    ATTR_CREATE(s, 2, "student", BOOL, BOOL_WIDTH, INT_WIDTH + FLOAT_WIDTH);
     ATTR_CREATE(s, 3, "num", INT, INT_WIDTH,
-                INT_WIDTH * 2 + FLOAT_WIDTH + BOOL_WIDTH);
+                INT_WIDTH + FLOAT_WIDTH + BOOL_WIDTH);
     ATTR_CREATE(s, 4, "email", VARSTR, 50, 0);
     ATTR_CREATE(s, 5, "name", VARSTR, 50, 1);
 
@@ -52,7 +52,7 @@ void testRecordParseVarLength() {
     };
     record.fields = fields;
     record.numValues = 6;
-    record.size = RECORD_HEADER_WIDTH + SLOT_SIZE * 2 + GLOBAL_ID_WIDTH +
+    record.size = RECORD_HEADER_WIDTH + OFFSET_WIDTH * 3 + GLOBAL_ID_WIDTH +
                   INT_WIDTH + FLOAT_WIDTH + BOOL_WIDTH + INT_WIDTH + 25 + 4;
     record.globalIdx = 6;
 

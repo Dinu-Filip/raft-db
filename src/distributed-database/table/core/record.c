@@ -148,8 +148,8 @@ static void parseField(Field *field, char *attribute, AttributeType type,
 
 uint16_t getFieldOffset(uint8_t *recordPtr, unsigned slotIdx) {
     uint16_t offset;
-    memcpy(&offset, recordPtr + RECORD_HEADER_WIDTH + SLOT_SIZE * slotIdx,
-           SLOT_SIZE);
+    memcpy(&offset, recordPtr + RECORD_HEADER_WIDTH + OFFSET_WIDTH * slotIdx,
+           OFFSET_WIDTH);
     return offset;
 }
 
