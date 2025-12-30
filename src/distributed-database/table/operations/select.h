@@ -3,6 +3,7 @@
 
 #include "../core/table.h"
 #include "table/operations/operation.h"
+#include "table/schema.h"
 
 extern QueryResult selectOperation(TableInfo tableInfo, Schema *schema,
                                    Operation operation);

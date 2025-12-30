@@ -6,12 +6,12 @@
 #include <string.h>
 
 #include "../operations/insert.h"
-#include "../operations/select.h"
 #include "../schema.h"
 #include "log.h"
 #include "record.h"
 #include "recordArray.h"
 #include "table/operations/operation.h"
+#include "table/operations/sqlToOperation.h"
 
 #define INITIAL_NUM_SLOTS 10
 
@@ -119,18 +119,6 @@ Page addPage(TableInfo table) {
     return page;
 }
 
-void addPageToSpaceInventory(char *tableName, TableInfo spaceInfo, Page page) {
-    Operation operation = createInsertOperation();
-    operation->tableName = spaceInfo->name;
-    operation->query.insert.attributes = createQueryAttributes(
-        3, SPACE_INFO_RELATION, SPACE_INFO_ID, SPACE_INFO_FREE_SPACE);
-    operation->query.insert.values =
-        createQueryValues(3, tableName, page->pageId, page->header->freeSpace);
-
-    executeOperation(operation);
-    freeInsertOperationTest(operation);
-}
-
 static void writePageHeader(Page page) {
     LOG("Update page header");
     PageHeader header = page->header;
@@ -195,8 +183,6 @@ static void resizeRecordSlots(RecordSlotArray *array) {
 }
 
 void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
-    LOG("Update page header insert\n");
-
     // Updates free space log in page header
     page->header->freeSpace -= record->size;
 
@@ -228,25 +214,13 @@ void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
 static QueryResult getFreeSpaces(TableInfo spaceInfo, char *tableName,
                                  size_t recordSize) {
     LOG("GET FREE SPACE\n");
+    char template[] = "select * from %s where %s >= %d;";
+    char sql[100];
+    snprintf(sql, sizeof(sql), template, spaceInfo->name, SPACE_TABLE_FREE_SPACE, recordSize);
 
-    Condition condition = malloc(sizeof(struct Condition));
-    assert(condition != NULL);
-
-    assert(recordSize <= INT_MAX);
-    condition->value.twoArg.op2 = createOperand(INT, &recordSize);
-    // condition->value.twoArg.op1 = SPACE_INFO_FREE_SPACE;
-    condition->type = GREATER_THAN;
-
-    Schema *spaceInfoSchema = initSpaceInfoSchema(tableName);
-    QueryAttributes spaceInfoIdAttribute =
-        createQueryAttributes(1, SPACE_INFO_ID);
     QueryResult res =
-        selectFrom(spaceInfo, spaceInfoSchema, condition, spaceInfoIdAttribute);
+        executeOperation(sqlToOperation(sql));
 
-    free(spaceInfoSchema);
-    free(condition->value.twoArg.op2);
-    free(condition);
-    freeQueryAttributes(spaceInfoIdAttribute);
     return res;
 }
 
@@ -256,18 +230,11 @@ static void insertFreeSpace(char *tableName, TableInfo spaceInfo, Page page) {
     int id = page->pageId;
     int freeSpace = page->header->freeSpace;
 
-    QueryValues values = createQueryValues(3, createOperand(STR, tableName),
-                                           createOperand(INT, &id),
-                                           createOperand(INT, &freeSpace));
+    char template[] = "insert into %s values (%s, %d, %d);";
+    char sql[100];
+    snprintf(sql, sizeof(sql), template, spaceInfo->name, id, freeSpace);
 
-    Schema *spaceInfoSchema = initSpaceInfoSchema(tableName);
-    QueryAttributes spaceInfoQueryAttributes = initSpaceInfoQueryAttributes();
-    insertInto(spaceInfo, NULL, spaceInfoSchema, initSpaceInfoQueryAttributes(),
-               values, FREE_MAP);
-
-    free(spaceInfoQueryAttributes);
-    free(spaceInfoSchema);
-    freeQueryValues(values);
+    executeOperation(sqlToOperation(sql));
 }
 
 Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
@@ -305,16 +272,15 @@ Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
 
     // Returns first page with sufficient space
     size_t pageId =
-        spaceMapRes->records->records[0]->fields[SPACE_ID_IDX + 1].intValue;
+        spaceMapRes->records->records[0]->fields[SPACE_ID_IDX].intValue;
+
     freeRecordArray(spaceMapRes->records);
     free(spaceMapRes);
-    LOG("PAGE %ld FOUND\n", pageId);
+
     return getPage(tableInfo, pageId);
 }
 
 void updatePage(TableInfo tableInfo, Page page) {
-    LOG("Update page %d\n", page->pageId);
-
     // Updates page header if modified
     writePageHeader(page);
     

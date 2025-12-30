@@ -8,7 +8,6 @@
 #include "../core/field.h"
 #include "../schema.h"
 #include "insert.h"
-#include "log.h"
 #include "sqlToOperation.h"
 #include "table/core/table.h"
 
@@ -20,42 +19,21 @@ static void setSchema(char *tableName, QueryTypes descriptors) {
 
     TableInfo schemaInfo = openTable(schemaName);
 
-    // Gets data dictionary schema
-    Schema *dictSchema = initDictSchema();
-
-    // Set length of relation name to length of table name
-    dictSchema->attributeSizes[RELATION_NAME_IDX] = strlen(tableName);
+    Schema dictSchema = getDictSchema();
 
     // Insertion command template
-    char template[] = "insert into %s values (%s, %d, %d, %d, %s);";
+    char template[] = "insert into %s values (%s, %d, %d, %d, %d, %s);";
     char sql[500];
-
-    // Index of attribute in schema
-    int idx = 0;
 
     unsigned numTypes = descriptors->numTypes;
 
     // Inserts fixed-length fields with index
     for (int i = 0; i < numTypes; i++) {
         QueryTypeDescriptor type = descriptors->types[i];
-        if (type->type != VARSTR) {
-            snprintf(sql, sizeof(sql), template, schemaName, type->type, idx, type->size, type->name);
-            insertOperation(schemaInfo, NULL, dictSchema, sqlToOperation(sql), SCHEMA);
-            idx++;
-        }
+        snprintf(sql, sizeof(sql), template, schemaName, tableName, type->type, i, type->size, type->name);
+        insertOperation(schemaInfo, NULL, &dictSchema, sqlToOperation(sql), SCHEMA);
     }
 
-    // Inserts variable-length fields with index
-    for (int i = 0; i < numTypes; i++) {
-        QueryTypeDescriptor type = descriptors->types[i];
-        if (type->type == VARSTR) {
-            snprintf(sql, sizeof(sql), template, schemaName, type->type, idx, type->size, type->name);
-            insertOperation(schemaInfo, NULL, dictSchema, sqlToOperation(sql), SCHEMA);
-            idx++;
-        }
-    }
-
-    free(dictSchema);
     closeTable(schemaInfo);
 }
 

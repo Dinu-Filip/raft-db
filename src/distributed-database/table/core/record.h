@@ -4,6 +4,7 @@
 #include "field.h"
 #include "pages.h"
 #include "table.h"
+#include "table/schema.h"
 
 typedef struct Record *Record;
 struct Record {

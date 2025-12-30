@@ -9,26 +9,33 @@
 #include "core/recordArray.h"
 #include "log.h"
 #include "operations/select.h"
+#include "operations/sqlToOperation.h"
 #include "table/core/table.h"
 
-AttributeName schemaAttributes[NUM_SCHEMA_ATTRIBUTES] = {
-    SCHEMA_RELATION_NAME, SCHEMA_ATTRIBUTE_TYPE, SCHEMA_IDX,
-    SCHEMA_ATTRIBUTE_SIZE, SCHEMA_ATTRIBUTE_NAME};
-AttributeType schemaTypes[NUM_SCHEMA_ATTRIBUTES] = {STR, INT, INT, INT, VARSTR};
-unsigned int schemaSize[NUM_SCHEMA_ATTRIBUTES] = {
-    MAX_RELATION_NAME, INT_WIDTH, INT_WIDTH, INT_WIDTH, MAX_ATTRIBUTE_NAME};
-AttributeName spaceInfoAttributes[NUM_SPACE_INFO_ATTRIBUTES] = {
-    SPACE_INFO_RELATION, SPACE_INFO_ID, SPACE_INFO_FREE_SPACE};
-AttributeType spaceInfoTypes[NUM_SPACE_INFO_ATTRIBUTES] = {STR, INT, INT};
-unsigned int spaceInfoSizes[NUM_SPACE_INFO_ATTRIBUTES] = {MAX_RELATION_NAME,
-                                                          INT_WIDTH, INT_WIDTH};
+#define SCHEMA_RELATION_NAME "RELATION_NAME"
+#define SCHEMA_IDX "SCHEMA_IDX"
+#define SCHEMA_ATTRIBUTE_TYPE "ATTRIBUTE_TYPE"
+#define SCHEMA_ATTRIBUTE_SIZE "ATTRIBUTE_SIZE"
+#define SCHEMA_ATTRIBUTE_NAME "ATTRIBUTE_NAME"
+
+#define ATTRIBUTE_SCHEMA_IDX 0
+#define ATTRIBUTE_TYPE_IDX 1
+#define ATTRIBUTE_SIZE_IDX 2
+#define RELATION_NAME_IDX 3
+#define ATTRIBUTE_NAME_IDX 4
+
+#define NUM_SCHEMA_ATTRIBUTES 5
+
+static AttrInfo schemaAttrInfos[NUM_SCHEMA_ATTRIBUTES];
+static Schema schema = {.attrInfos = schemaAttrInfos,
+                        .numAttrs = NUM_SCHEMA_ATTRIBUTES};
 
 static int schemaRecordCompare(const void *record1, const void *record2) {
     // Comparator for sorting schema records on index
     Record r1 = *(Record *)record1;
     Record r2 = *(Record *)record2;
-    int32_t idx1 = r1->fields[ATTRIBUTE_IDX_IDX].intValue;
-    int32_t idx2 = r2->fields[ATTRIBUTE_IDX_IDX].intValue;
+    int32_t idx1 = r1->fields[ATTRIBUTE_SCHEMA_IDX].intValue;
+    int32_t idx2 = r2->fields[ATTRIBUTE_SCHEMA_IDX].intValue;
 
     if (idx1 < idx2) {
         return -1;
@@ -39,55 +46,47 @@ static int schemaRecordCompare(const void *record1, const void *record2) {
     return 1;
 }
 
-QueryAttributes initSchemaQueryAttributes() {
-    QueryAttributes queryAttributes = malloc(sizeof(struct QueryAttributes));
-    assert(queryAttributes != NULL);
+Schema getDictSchema() {
+    static bool initialised = false;
 
-    AttributeName schemaAttributes[] = {SCHEMA_RELATION_NAME, SCHEMA_ATTRIBUTE_TYPE,
-                                    SCHEMA_IDX, SCHEMA_ATTRIBUTE_SIZE,
-                                    SCHEMA_ATTRIBUTE_NAME};
+    if (initialised) {
+        return schema;
+    }
 
-    queryAttributes->attributes = schemaAttributes;
-    queryAttributes->numAttributes = NUM_SCHEMA_ATTRIBUTES;
-
-    return queryAttributes;
-}
-
-QueryAttributes initSpaceInfoQueryAttributes() {
-    QueryAttributes queryAttributes = malloc(sizeof(struct QueryAttributes));
-    assert(queryAttributes != NULL);
-
-    queryAttributes->attributes = spaceInfoAttributes;
-    queryAttributes->numAttributes = NUM_SPACE_INFO_ATTRIBUTES;
-
-    return queryAttributes;
-}
-
-Schema *initDictSchema() {
     LOG("INIT DICT SCHEMA");
+    schema.numAttrs = NUM_SCHEMA_ATTRIBUTES;
 
-    Schema *schema = malloc(sizeof(Schema));
-    assert(schema != NULL);
+    AttrInfo *schemaIdxInfo = &schemaAttrInfos[ATTRIBUTE_SCHEMA_IDX];
+    schemaIdxInfo->type = INT;
+    schemaIdxInfo->loc = INT_WIDTH * ATTRIBUTE_SCHEMA_IDX;
+    schemaIdxInfo->size = INT_WIDTH;
+    schemaIdxInfo->name = SCHEMA_IDX;
 
-    schema->attributes = schemaAttributes;
-    schema->attributeTypes = schemaTypes;
-    schema->attributeSizes = schemaSize;
-    schema->numAttributes = NUM_SCHEMA_ATTRIBUTES;
+    AttrInfo *schemaAttrTypeInfo = &schemaAttrInfos[ATTRIBUTE_TYPE_IDX];
+    schemaAttrTypeInfo->type = INT;
+    schemaAttrTypeInfo->loc = INT_WIDTH * ATTRIBUTE_TYPE_IDX;
+    schemaAttrTypeInfo->size = INT_WIDTH;
+    schemaAttrTypeInfo->name = SCHEMA_ATTRIBUTE_TYPE;
 
-    return schema;
-}
+    AttrInfo *schemaAttrSizeInfo = &schemaAttrInfos[ATTRIBUTE_SIZE_IDX];
+    schemaAttrSizeInfo->type = INT;
+    schemaAttrSizeInfo->loc = INT_WIDTH * ATTRIBUTE_SIZE_IDX;
+    schemaAttrSizeInfo->size = INT_WIDTH;
+    schemaAttrSizeInfo->name = SCHEMA_ATTRIBUTE_SIZE;
 
-Schema *initSpaceInfoSchema(char *tableName) {
-    Schema *schema = malloc(sizeof(Schema));
-    assert(schema != NULL);
+    AttrInfo *relationNameInfo = &schemaAttrInfos[RELATION_NAME_IDX];
+    relationNameInfo->type = VARSTR;
+    relationNameInfo->loc = 0;
+    relationNameInfo->size = MAX_TABLE_NAME_LEN;
+    relationNameInfo->name = SCHEMA_RELATION_NAME;
 
-    schema->attributes = spaceInfoAttributes;
-    schema->attributeTypes = spaceInfoTypes;
-    schema->attributeSizes = spaceInfoSizes;
-    schema->numAttributes = NUM_SPACE_INFO_ATTRIBUTES;
+    AttrInfo *attributeNameInfo = &schemaAttrInfos[ATTRIBUTE_NAME_IDX];
+    attributeNameInfo->type = VARSTR;
+    attributeNameInfo->loc = 1;
+    attributeNameInfo->size = MAX_ATTRIBUTE_NAME;
+    attributeNameInfo->name = SCHEMA_ATTRIBUTE_NAME;
 
-    schema->attributeSizes[RELATION_NAME_IDX] = strlen(tableName);
-
+    initialised = true;
     return schema;
 }
 
@@ -95,66 +94,59 @@ Schema *getSchema(TableInfo schemaInfo, char *tableName) {
     Schema *schema = malloc(sizeof(Schema));
     assert(schema != NULL);
 
-    // Creates select operation to get records from schema table
-    struct Condition condition;
-    condition.type = EQUALS;
-    // AttributeName relationName = SCHEMA_RELATION_NAME;
-    // condition.value.twoArg.op1 = relationName;
-    condition.value.twoArg.op2 = createOperand(STR, tableName);
+    char template[] = "select * from %s where %s = %s;";
+    char sql[100];
+    snprintf(sql, sizeof(sql), template, schemaInfo->name, SCHEMA_RELATION_NAME,
+             tableName);
 
-    QueryAttributes dictAttributes = createQueryAttributes(
-        NUM_SCHEMA_ATTRIBUTES, SCHEMA_RELATION_NAME, SCHEMA_ATTRIBUTE_TYPE,
-        SCHEMA_IDX, SCHEMA_ATTRIBUTE_SIZE, SCHEMA_ATTRIBUTE_NAME);
-    Schema *dictSchema = initDictSchema();
-    dictSchema->attributeSizes[RELATION_NAME_IDX] = strlen(tableName);
+    Schema dictSchema;
+    getDictSchema(&dictSchema);
+
+    // Retrieves records from schema store for this table
     QueryResult result =
-        selectFrom(schemaInfo, dictSchema, &condition, dictAttributes);
+        selectOperation(schemaInfo, &dictSchema, sqlToOperation(sql));
 
-    LOG("Checking schema record output");
-    LOG("Num records: %d\n", result->records->size);
     unsigned numRecords = result->records->size;
+
     // Sorts schema records based on index in schema
     qsort(result->records->records, numRecords, sizeof(Record),
           schemaRecordCompare);
 
-    schema->attributes = malloc(sizeof(uint8_t *) * numRecords);
-    assert(schema->attributes != NULL);
+    schema->attrInfos = malloc(sizeof(AttrInfo) * numRecords);
+    assert(schema->attrInfos != NULL);
 
-    schema->attributeTypes = malloc(sizeof(uint8_t *) * numRecords);
-    assert(schema->attributeTypes != NULL);
-
-    schema->attributeSizes = malloc(sizeof(uint8_t *) * numRecords);
-    assert(schema->attributeSizes != NULL);
+    unsigned staticLoc = 0;
+    unsigned varLoc = 0;
 
     // Parses records into schema, maintaining order of attributes in original
     // schema
     for (int i = 0; i < numRecords; i++) {
         Record record = result->records->records[i];
-        schema->attributes[i] =
-            strdup(record->fields[ATTRIBUTE_NAME_IDX].stringValue);
-        Field field = record->fields[ATTRIBUTE_TYPE_IDX];
-        schema->attributeTypes[i] = field.intValue;
-        schema->attributeSizes[i] = record->fields[ATTRIBUTE_SIZE_IDX].intValue;
-    }
+        AttrInfo *info =
+            &schema->attrInfos[record->fields[ATTRIBUTE_SCHEMA_IDX].intValue];
 
-    schema->numAttributes = numRecords;
+        info->name = strdup(record->fields[ATTRIBUTE_NAME_IDX].stringValue);
+        info->type = record->fields[ATTRIBUTE_TYPE_IDX].intValue;
+        info->size = record->fields[ATTRIBUTE_SIZE_IDX].intValue;
+
+        if (info->type == VARSTR) {
+            info->loc = varLoc++;
+        } else {
+            info->loc = staticLoc;
+            staticLoc += info->size;
+        }
+    }
 
     freeRecordArray(result->records);
     free(result);
-    free(dictSchema);
-    freeQueryAttributes(dictAttributes);
-    free(condition.value.twoArg.op2->value.strOp);
-    free(condition.value.twoArg.op2);
 
     return schema;
 }
 
 void freeSchema(Schema *schema) {
-    for (int i = 0; i < schema->numAttributes; i++) {
-        free(schema->attributes[i]);
+    for (int i = 0; i < schema->numAttrs; i++) {
+        free(schema->attrInfos[i].name);
     }
-    free(schema->attributes);
-    free(schema->attributeSizes);
-    free(schema->attributeTypes);
+    free(schema->attrInfos);
     free(schema);
 }

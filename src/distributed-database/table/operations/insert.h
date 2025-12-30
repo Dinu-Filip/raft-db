@@ -3,6 +3,7 @@
 
 #include "../core/table.h"
 #include "table/operations/operation.h"
+#include "table/schema.h"
 
 extern void insertOperation(TableInfo tableInfo, TableInfo spaceMap,
                             Schema *schema, Operation operation, TableType type);

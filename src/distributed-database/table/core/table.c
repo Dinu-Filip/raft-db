@@ -123,16 +123,13 @@ void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
 
     int id = page->pageId;
     int freeSpace = page->header->freeSpace;
-    Schema *spaceInfoSchema = initSpaceInfoSchema(tableName);
 
     // Update space inventory table with new free space in page
     char template[] = "update %s set %s = %d where id = %d;";
     char sql[100];
 
-    snprintf(sql, sizeof(sql), template, SPACE_INFO_FREE_SPACE, freeSpace, id);
-    updateOperation(spaceInventory, NULL, spaceInfoSchema, sqlToOperation(sql));
-
-    free(spaceInfoSchema);
+    snprintf(sql, sizeof(sql), template, SPACE_TABLE_FREE_SPACE, freeSpace, id);
+    executeQualifiedOperation(sqlToOperation(sql), FREE_MAP);
 }
 
 void closeTable(TableInfo tableInfo) {

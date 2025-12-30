@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "table/core/table.h"
+
 // uint8_t is used to represent enums within the struct to make parsing and
 // encoding easier
 typedef enum { INT = 0, STR, VARSTR, FLOAT, BOOL, ATTR } AttributeType;
@@ -112,64 +114,13 @@ struct Operation {
  */
 extern void initDatabasePath(size_t nodeId);
 
+extern QueryResult executeQualifiedOperation(Operation operation, TableType tableType);
+
 /**
  * Executes operation, returning result of query for SELECT or NULL otherwise
  * @param operation
  */
 extern QueryResult executeOperation(Operation operation);
-
-/**
- * Creates Operation for two arguments comparisons in conditions
- */
-extern Operation createSelectTwoArgOperation();
-
-/**
- * Frees select operation with two argument condition
- * @param operation
- */
-extern void freeSelectTwoArgOperation(Operation operation);
-
-/**
- * Creates insert Operation
- * @return insert Operation
- */
-extern Operation createInsertOperation();
-
-/**
- * Frees insert operation
- * @param operation
- */
-extern void freeInsertOperationTest(Operation operation);
-
-/**
- * Creates QueryAttributes with provided attributes
- * @param numAttributes
- * @param ... attributes to add
- * @return QueryAttributes struct with added attributes
- */
-extern QueryAttributes createQueryAttributes(size_t numAttributes, ...);
-
-/**
- * Frees query attributes
- * @param attributes
- */
-extern void freeQueryAttributes(QueryAttributes attributes);
-
-/**
- * Creates Operand with given type and value
- * @param type type of operand
- * @param value value to insert in Operand
- */
-extern Operand createOperand(AttributeType type, void *value);
-
-/**
- * Creates QueryValues with provided Operands
- * @param numValues number of values in QueryValues
- * @param ... Operand fields
- */
-extern QueryValues createQueryValues(size_t numValues, ...);
-
-extern void freeQueryValues(QueryValues queryValues);
 
 /**
  * Determines whether operation is read (select) or write (any other operation)

@@ -14,6 +14,7 @@ void insertInto(TableInfo tableInfo, TableInfo spaceMap, Schema *schema,
     // Creates record from query
     Record record =
         parseQuery(schema, attributes, values, tableInfo->header->globalIdx);
+    outputRecord(record);
 
     insertRecord(tableInfo, spaceMap, record, type);
     freeRecord(record);

@@ -6,18 +6,30 @@
 #include "table/core/table.h"
 #include "test-library.h"
 
+#define ATTR_CREATE(schema, idx, name_, type_, size_, loc_) \
+    ({                                                      \
+        schema->attrInfos[idx].name = name_;                \
+        schema->attrInfos[idx].type = type_;                \
+        schema->attrInfos[idx].size = size_;                \
+        schema->attrInfos[idx].loc = loc_;                  \
+    })
+
 void testIteratorRecordsMultiplePages() {
     createMultiplePageDummy();
 
     Schema schema;
-    AttributeName names[7] = {"id", "age", "height", "student", "num", "email", "name"};
-    AttributeType types[7] = {INT, INT, FLOAT, BOOL, INT, VARSTR, VARSTR};
-    unsigned sizes[7] = {INT_WIDTH, INT_WIDTH, FLOAT_WIDTH, BOOL_WIDTH, INT_WIDTH, 50, 50};
 
-    schema.attributes = names;
-    schema.attributeTypes = types;
-    schema.attributeSizes = sizes;
-    schema.numAttributes = 7;
+    schema.numAttrs = 7;
+    schema.attrInfos = malloc(sizeof(AttrInfo) * schema.numAttrs);
+
+    Schema *s = &schema;
+    ATTR_CREATE(s, 0, "id", INT, INT_WIDTH, 0);
+    ATTR_CREATE(s, 1, "age", INT, INT_WIDTH, INT_WIDTH);
+    ATTR_CREATE(s, 2, "height", FLOAT, FLOAT_WIDTH, INT_WIDTH * 2);
+    ATTR_CREATE(s, 3, "student", BOOL, BOOL_WIDTH, INT_WIDTH * 2 + FLOAT_WIDTH);
+    ATTR_CREATE(s, 4, "num", INT, INT_WIDTH, INT_WIDTH * 2 + FLOAT_WIDTH + BOOL_WIDTH);
+    ATTR_CREATE(s, 5, "email", VARSTR, 50, 0);
+    ATTR_CREATE(s, 6, "name", VARSTR, 50, 1);
 
     TableInfo table = openTable("testdb");
     struct RecordIterator iterator;

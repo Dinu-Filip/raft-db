@@ -1,3 +1,4 @@
+#include "test/operations/createTable.h"
 #include "test/operations/selectAll.h"
 #include "test/operations/selectAttrSubset.h"
 #include "test/operations/selectBetween.h"
@@ -6,5 +7,5 @@
 #include "test/sql/updateMultipleAttributes.h"
 
 int main() {
-    testSelectBetween();
+    testCreateTableOperation();
 }

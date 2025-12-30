@@ -2,6 +2,7 @@
 #define UPDATE_H
 
 #include "../core/table.h"
+#include "table/schema.h"
 
 /**
  * Updates record in database if satisfies condition

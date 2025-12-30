@@ -61,9 +61,8 @@ static void parseQueryValueToField(Field *field, Operand attributeValue,
 Record parseQuery(Schema *schema, QueryAttributes attributes,
                   QueryValues values, uint32_t globalIdx) {
     // Parses query into internal representation
-
-    LOG("PARSE QUERY\n");
-    Record record = initialiseRecord(schema->numAttributes);
+    unsigned numAttributes = attributes->numAttributes;
+    Record record = initialiseRecord(numAttributes);
 
     // Computes the size of the record data in bytes
     unsigned recordSize = 0;
@@ -73,22 +72,22 @@ Record parseQuery(Schema *schema, QueryAttributes attributes,
     recordSize += GLOBAL_ID_WIDTH;
 
     // Iterates over query, matching schema to attributes
-    for (int j = 0; j < schema->numAttributes; j++) {
-        for (int i = 0; i < attributes->numAttributes; i++) {
-            AttributeName attributeName = attributes->attributes[i];
+    for (int i = 0; i < numAttributes; i++) {
+        AttributeName attributeName = attributes->attributes[i];
+        for (int j = 0; j < schema->numAttrs; j++) {
+            AttrInfo info = schema->attrInfos[j];
 
             // Skips if attribute names do not match
-            if (strcmp(schema->attributes[j], attributeName) != 0) {
+            if (strcmp(info.name, attributeName) != 0) {
                 continue;
             }
 
             Operand attributeValue = values->values[i];
-            AttributeType type = schema->attributeTypes[j];
-            unsigned attributeSize = schema->attributeSizes[j];
 
             // Sets field of record to attribute values and metadata
+            // The order of the fields always matches the schema order
             parseQueryValueToField(&record->fields[j], attributeValue,
-                                   attributeName, type, attributeSize);
+                                   attributeName, info.type, info.size);
 
             recordSize += record->fields[j].size;
 
@@ -96,6 +95,7 @@ Record parseQuery(Schema *schema, QueryAttributes attributes,
                 // Adds for variable offset field
                 recordSize += SLOT_SIZE;
             }
+
             break;
         }
     }
@@ -108,12 +108,11 @@ Record parseQuery(Schema *schema, QueryAttributes attributes,
     // Number of attribute values excluding global index
     record->numValues = attributes->numAttributes;
 
-    LOG("RECORD PARSE SUCCESSFUL");
     return record;
 }
 
 static void parseField(Field *field, char *attribute, AttributeType type,
-                uint16_t size, uint8_t *record) {
+                       uint16_t size, uint8_t *fieldptr) {
     // Parses field from raw binary
 
     field->attribute = strdup(attribute);
@@ -122,41 +121,55 @@ static void parseField(Field *field, char *attribute, AttributeType type,
 
     switch (type) {
         case INT:
-            memcpy(&field->intValue, record, field->size);
+            memcpy(&field->intValue, fieldptr, field->size);
             break;
         case STR:
             field->stringValue = malloc(sizeof(char) * (field->size + 1));
             assert(field->stringValue != NULL);
-            memcpy(field->stringValue, record, field->size);
+            memcpy(field->stringValue, fieldptr, field->size);
             field->stringValue[field->size] = '\0';
             break;
         case VARSTR:
             field->stringValue = malloc(sizeof(char) * (field->size + 1));
             assert(field->stringValue != NULL);
-            memcpy(field->stringValue, record, field->size);
+            memcpy(field->stringValue, fieldptr, field->size);
             field->stringValue[field->size] = '\0';
             break;
         case FLOAT:
-            memcpy(&field->floatValue, record, field->size);
+            memcpy(&field->floatValue, fieldptr, field->size);
             break;
         case BOOL:
-            memcpy(&field->boolValue, record, field->size);
+            memcpy(&field->boolValue, fieldptr, field->size);
             break;
         case ATTR:
             exit(-1);
     }
 }
 
+uint16_t getFieldOffset(uint8_t *recordPtr, unsigned slotIdx) {
+    uint16_t offset;
+    memcpy(&offset, recordPtr + RECORD_HEADER_WIDTH + SLOT_SIZE * slotIdx,
+           SLOT_SIZE);
+    return offset;
+}
+
+uint16_t getFieldSize(uint8_t *recordPtr, unsigned slotIdx) {
+    uint16_t offset1 = getFieldOffset(recordPtr, slotIdx);
+    uint16_t offset2 = getFieldOffset(recordPtr, slotIdx + 1);
+    return offset2 - offset1;
+}
+
 Record parseRecord(uint8_t *ptr, Schema *schema) {
-    Record record = initialiseRecord(schema->numAttributes);
+    unsigned numAttrs = schema->numAttrs;
+    Record record = initialiseRecord(numAttrs);
 
     Field *fields = record->fields;
     record->size = 0;
 
     // Read offset to start of static fields
-    uint16_t staticFieldStart;
-    memcpy(&staticFieldStart, ptr, RECORD_HEADER_WIDTH);
-    uint8_t *recordStart = ptr + staticFieldStart;
+    uint16_t numVars;
+    memcpy(&numVars, ptr, RECORD_HEADER_WIDTH);
+    uint8_t *recordStart = ptr + numVars * OFFSET_WIDTH;
 
     // Reads the global index
     memcpy(&record->globalIdx, recordStart, GLOBAL_ID_WIDTH);
@@ -166,36 +179,25 @@ Record parseRecord(uint8_t *ptr, Schema *schema) {
     record->size += GLOBAL_ID_WIDTH;
     record->size += RECORD_HEADER_WIDTH;
 
-    // Stores pointer to start of variable-length field slots
-    uint8_t *slotsStart = ptr + RECORD_HEADER_WIDTH;
-    RecordSlot slot;
+    // Reads each attribute from record using schema
+    for (int i = 0; i < numAttrs; i++) {
+        AttrInfo info = schema->attrInfos[i];
+        unsigned size;
+        uint8_t *fieldptr;
 
-    // Reads each attribute from record using schema. As a precondition, the
-    // variable length schema attributes should be at the end.
-    for (int i = 0; i < schema->numAttributes; i++) {
-        char *attribute = schema->attributes[i];
-        AttributeType type = schema->attributeTypes[i];
-        if (type == VARSTR) {
+        if (info.type == VARSTR) {
             // Retrieves slot for variable-length field
-            getRecordSlot(&slot, slotsStart);
-
-            // Moves to next slot
-            slotsStart += SLOT_SIZE;
-
-            // Parse variable length field using slot offset and size
-            parseField(fields + i, attribute, type, slot.size,
-                       ptr + slot.offset);
+            size = getFieldSize(ptr, info.loc);
+            fieldptr = ptr + getFieldOffset(ptr, info.loc);
 
             // Adds size of slot to variable length field to total record size
-            record->size += SLOT_SIZE;
+            record->size += OFFSET_WIDTH;
         } else {
-            unsigned size = schema->attributeSizes[i];
-
-            // Parses field from record
-            parseField(fields + i, attribute, type, size, recordStart);
-
-            recordStart += size;
+            fieldptr = recordStart + info.loc;
+            size = info.size;
         }
+
+        parseField(fields + i, info.name, info.type, size, fieldptr);
 
         // Adds size of parsed field
         record->size += fields[i].size;
@@ -204,7 +206,7 @@ Record parseRecord(uint8_t *ptr, Schema *schema) {
     return record;
 }
 
-static int countNumVarFields(Record record) {
+static unsigned countNumVarFields(Record record) {
     int numVar = 0;
     for (int i = 0; i < record->numValues; i++) {
         Field field = record->fields[i];
@@ -216,36 +218,50 @@ static int countNumVarFields(Record record) {
 }
 
 void writeRecord(uint8_t *ptr, Record record) {
-    LOG("Write record %d\n", record->globalIdx);
-
     // Counts number of variable length fields to determine number of variable
     // field slots needed
-    int numVar = countNumVarFields(record);
+    // Adds 1 for sentinel slot at end of record
+    uint16_t numVar = 0;
+    uint16_t varOffset = 0;
+    for (int i = 0; i < record->numValues; i++) {
+        Field field = record->fields[i];
+        if (field.type == VARSTR) {
+            numVar++;
+        } else {
+            varOffset += field.size;
+        }
+    }
+    // Adds for sentinel offset
+    numVar++;
 
     // Writes offset to start of static fields
-    unsigned staticFieldStart = RECORD_HEADER_WIDTH + numVar * SLOT_SIZE;
-    memcpy(ptr, &staticFieldStart, RECORD_HEADER_WIDTH);
+    memcpy(ptr, &numVar, RECORD_HEADER_WIDTH);
 
     unsigned slotOffset = RECORD_HEADER_WIDTH;
-    unsigned fieldOffset = staticFieldStart;
+    unsigned staticFieldOffset = slotOffset + numVar * OFFSET_WIDTH;
+    unsigned varFieldOffset = staticFieldOffset + varOffset;
 
-    memcpy(ptr + fieldOffset, &record->globalIdx, GLOBAL_ID_WIDTH);
-    fieldOffset += GLOBAL_ID_WIDTH;
+    memcpy(ptr + staticFieldOffset, &record->globalIdx, GLOBAL_ID_WIDTH);
+    staticFieldOffset += GLOBAL_ID_WIDTH;
 
     // Writes each field, setting (offset, size) slot for each variable length
     // field
     for (int i = 0; i < record->numValues; i++) {
         Field field = record->fields[i];
-        writeField(ptr + fieldOffset, field);
         if (field.type == VARSTR) {
-            // Writes (pos, width) slot for each variable length field, updating
-            // start of static fields
-            memcpy(ptr + slotOffset, &fieldOffset, OFFSET_WIDTH);
-            memcpy(ptr + slotOffset + OFFSET_WIDTH, &field.size, SIZE_WIDTH);
-            slotOffset += SLOT_SIZE;
+            writeField(ptr + varFieldOffset, field);
+
+            memcpy(ptr + slotOffset, &varFieldOffset, OFFSET_WIDTH);
+            slotOffset += OFFSET_WIDTH;
+
+            varFieldOffset += field.size;
+        } else {
+            writeField(ptr + staticFieldOffset, field);
+            staticFieldOffset += field.size;
         }
-        fieldOffset += field.size;
     }
+    // Adds sentinel offset
+    memcpy(ptr + slotOffset, &record->size, OFFSET_WIDTH);
 }
 
 void initialiseRecordIterator(RecordIterator iterator) {
@@ -272,7 +288,8 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
         }
 
         // If end of slot array encountered, moves to next page
-        if (recordIterator->slotIdx == recordIterator->page->header->slots.size) {
+        if (recordIterator->slotIdx ==
+            recordIterator->page->header->slots.size) {
             recordIterator->pageId++;
 
             // Frees previous page if not used elsewhere
@@ -285,8 +302,8 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
         }
 
         // Reads next record slot
-        RecordSlot *nextSlot =
-            &recordIterator->page->header->slots.slots[recordIterator->slotIdx++];
+        RecordSlot *nextSlot = &recordIterator->page->header->slots
+                                    .slots[recordIterator->slotIdx++];
 
         // Skips over empty slot
         if (nextSlot->size == 0) {
@@ -294,7 +311,8 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
         }
 
         recordIterator->lastSlot = nextSlot;
-        return parseRecord(recordIterator->page->ptr + nextSlot->offset, schema);
+        return parseRecord(recordIterator->page->ptr + nextSlot->offset,
+                           schema);
     }
 
     return NULL;

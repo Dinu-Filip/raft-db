@@ -39,6 +39,8 @@
 #define STR_ "str"
 #define VARSTR_ "varstr"
 
+#define VALID_CHARS "-_"
+
 #define contains(str, cs)                   \
     ({                                      \
         while (*(cs++) != '\0') {           \
@@ -64,7 +66,7 @@ static bool isValidStrToken(const char *token) {
     int idx = 1;
     char c;
     while ((c = token[idx++]) != '\0') {
-        if (!isalnum(c)) {
+        if (!isalnum(c) && strchr(VALID_CHARS, c) == NULL) {
             return false;
         }
     }

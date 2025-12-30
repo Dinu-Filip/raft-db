@@ -5,8 +5,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "../schema.h"
-
 #define MAX_FILE_NAME_LEN 200
 #define MAX_TABLE_NAME_LEN 100
 #define DB_EXTENSION "rfdb"
@@ -41,6 +39,13 @@
 #define DB_BASE_DIRECTORY "../../../raft-db"
 
 #define SLOT_SIZE (OFFSET_WIDTH + SIZE_WIDTH)
+#define SPACE_TABLE_FREE_SPACE "free_space"
+#define SPACE_TABLE_RELATION_NAME "relation"
+#define SPACE_TABLE_PAGE_ID "page_id"
+
+#define SPACE_ID_IDX 0
+#define SPACE_NAME_IDX 1
+#define SPACE_FREE_IDX 2
 
 extern char DB_DIRECTORY[MAX_FILE_NAME_LEN];
 

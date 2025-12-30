@@ -27,16 +27,16 @@ void displayTable(char *tableName) {
     outputTableSchema(schema);
     while (record != NULL) {
         printf("|");
-
-        // Skips global idx
-        for (int i = 1; i < record->numValues; i++) {
-            Field field = record->fields[i];
-            AttributeName attribute = schema->attributes[i - 1];
-            printf(" ");
-            outputField(field, MAX((int)strlen(attribute),
-                                   schema->attributeSizes[i - 1]));
-            printf(" |");
-        }
+        //
+        // // Skips global idx
+        // for (int i = 1; i < record->numValues; i++) {
+        //     Field field = record->fields[i];
+        //     AttributeName attribute = schema.[i - 1];
+        //     printf(" ");
+        //     outputField(field, MAX((int)strlen(attribute),
+        //                            schema->attributeSizes[i - 1]));
+        //     printf(" |");
+        // }
 
         printf("\n");
         freeRecord(record);
@@ -49,14 +49,14 @@ void displayTable(char *tableName) {
 void outputTableSchema(Schema *schema) {
     // Displays the attributes of the table as columns
     printf("|");
-
-    for (int i = 0; i < schema->numAttributes; i++) {
-        AttributeName attribute = schema->attributes[i];
-        printf(" ");
-        printf("%-*s", MAX(schema->attributeSizes[i], (int)strlen(attribute)),
-               schema->attributes[i]);
-        printf(" |");
-    }
+    //
+    // for (int i = 0; i < schema->numAttributes; i++) {
+    //     AttributeName attribute = schema->attributes[i];
+    //     printf(" ");
+    //     printf("%-*s", MAX(schema->attributeSizes[i], (int)strlen(attribute)),
+    //            schema->attributes[i]);
+    //     printf(" |");
+    // }
     printf("\n");
 }
 
@@ -121,14 +121,15 @@ void extendedDisplayTable(char *tableName, TableType tableType) {
         snprintf(buffer, MAX_FILE_NAME_LEN, "%s-schema", tableName);
         relationInfo = openTable(buffer);
 
-        schema = initDictSchema();
-        schema->attributeSizes[RELATION_NAME_IDX] = strlen(tableName);
+        // Schema dictSchema;
+        // initDictSchema(&dictSchema);
+        // dictSchema.attributeSizes[RELATION_NAME_IDX] = strlen(tableName);
     } else {
         char buffer[MAX_FILE_NAME_LEN];
         snprintf(buffer, MAX_FILE_NAME_LEN, "%s-space-inventory", tableName);
         relationInfo = openTable(buffer);
-
-        schema = initSpaceInfoSchema(tableName);
+        //
+        // schema = initSpaceInfoSchema(tableName);
     }
 
     printf("-----------TABLE HEADER-----------\n");
@@ -155,10 +156,10 @@ void extendedDisplayTable(char *tableName, TableType tableType) {
         printf("|");
         for (int i = 1; i < record->numValues; i++) {
             Field field = record->fields[i];
-            AttributeName attribute = schema->attributes[i - 1];
-            printf(" ");
-            outputDisplayField(field, MAX((int)strlen(attribute),
-                                          schema->attributeSizes[i - 1]));
+            // AttributeName attribute = schema->attributes[i - 1];
+            // printf(" ");
+            // outputDisplayField(field, MAX((int)strlen(attribute),
+            //                               schema->attributeSizes[i - 1]));
             printf(" |");
         }
         freeRecord(record);
