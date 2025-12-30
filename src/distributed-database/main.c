@@ -5,9 +5,12 @@
 #include "test/sql/createTable.h"
 #include "test/sql/deleteFromTable.h"
 #include "test/sql/updateMultipleAttributes.h"
+#include "test/table/defragmentPage.h"
+#include "test/table/iterateRecordsMultiplePages.h"
+#include "test/table/iterateRecordsSinglePage.h"
 #include "test/table/recordParseFixedLength.h"
 #include "test/table/recordParseVarLength.h"
 
 int main() {
-    testRecordParseVarLength();
+    testDefragmentPage();
 }

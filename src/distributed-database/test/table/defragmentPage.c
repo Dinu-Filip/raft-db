@@ -62,6 +62,7 @@ void testDefragmentPage() {
     while (record != NULL) {
         offset -= record->size;
         ASSERT_EQ(iterator.lastSlot->offset, offset);
+        ASSERT_STR_EQ(record->fields[6].stringValue, "Dinu")
         expected++;
         record = iterateRecords(table, &schema, &iterator, false);
     }

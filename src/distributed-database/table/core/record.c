@@ -179,6 +179,9 @@ Record parseRecord(uint8_t *ptr, Schema *schema) {
     record->size += GLOBAL_ID_WIDTH;
     record->size += RECORD_HEADER_WIDTH;
 
+    // Adds for sentinel offset
+    record->size += OFFSET_WIDTH;
+
     // Reads each attribute from record using schema
     for (int i = 0; i < numAttrs; i++) {
         AttrInfo info = schema->attrInfos[i];
