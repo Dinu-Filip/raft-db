@@ -61,9 +61,10 @@ QueryResult selectFrom(TableInfo tableInfo, Schema *schema, Condition cond,
     struct RecordIterator iterator;
     initialiseRecordIterator(&iterator);
 
-    Record record = iterateRecords(tableInfo, schema, &iterator, true);
+    bool canContinue = iterateRecords(tableInfo, &iterator, true);
 
-    while (record != NULL) {
+    while (canContinue) {
+        Record record = parseRecord(iterator.page->ptr + iterator.lastSlot->offset, schema);
         // Selects record if there is either no condition or the condition
         // evaluates to true
         if (cond == NULL || evaluate(record, cond)) {
@@ -79,7 +80,7 @@ QueryResult selectFrom(TableInfo tableInfo, Schema *schema, Condition cond,
             freeRecord(record);
         }
 
-        record = iterateRecords(tableInfo, schema, &iterator, true);
+        canContinue = iterateRecords(tableInfo, &iterator, true);
     }
 
     freeRecordIterator(&iterator);

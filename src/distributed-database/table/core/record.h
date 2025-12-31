@@ -64,7 +64,7 @@ extern void writeRecord(uint8_t *ptr, Record record);
  * @param recordIterator
  * @param autoClearPage determines whether to free page once exited
  */
-extern Record iterateRecords(TableInfo tableInfo, Schema *schema,
+extern bool iterateRecords(TableInfo tableInfo,
                              RecordIterator recordIterator,
                              bool autoClearPage);
 

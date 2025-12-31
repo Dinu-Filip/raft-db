@@ -11,16 +11,16 @@ void deleteFrom(TableInfo table, TableInfo spaceMap, Schema *schema,
     struct RecordIterator iterator;
     initialiseRecordIterator(&iterator);
 
-    Record record = iterateRecords(table, schema, &iterator, false);
-    while (record != NULL) {
-
+    bool canIterate = iterateRecords(table, &iterator, false);
+    while (canIterate) {
+        Record record = parseRecord(iterator.page->ptr + iterator.lastSlot->offset, schema);
         if (evaluate(record, condition)) {
             removeRecord(iterator.page, iterator.lastSlot, record->size);
         }
 
         freeRecord(record);
         Page oldPage = iterator.page;
-        record = iterateRecords(table, schema, &iterator, false);
+        canIterate = iterateRecords(table, &iterator, false);
 
         // Defragments records from deleted page only when page is left
         if (record == NULL || iterator.page->pageId != oldPage->pageId) {

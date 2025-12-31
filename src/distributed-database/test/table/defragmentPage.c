@@ -56,15 +56,16 @@ void testDefragmentPage() {
     initialiseRecordIterator(&iterator);
 
     unsigned offset = _PAGE_SIZE;
-    Record record = iterateRecords(table, &schema, &iterator, false);
+    bool canContinue = iterateRecords(table, &iterator, false);
     unsigned expected = 0;
 
-    while (record != NULL) {
+    while (canContinue) {
+        Record record = parseRecord(iterator.page->ptr + iterator.lastSlot->offset, &schema);
         offset -= record->size;
         ASSERT_EQ(iterator.lastSlot->offset, offset);
         ASSERT_STR_EQ(record->fields[6].stringValue, "Dinu")
         expected++;
-        record = iterateRecords(table, &schema, &iterator, false);
+        canContinue = iterateRecords(table, &iterator, false);
     }
 
     page = getPage(table, 1);

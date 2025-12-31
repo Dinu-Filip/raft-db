@@ -274,11 +274,11 @@ void initialiseRecordIterator(RecordIterator iterator) {
     iterator->slotIdx = 0;
 }
 
-Record iterateRecords(TableInfo tableInfo, Schema *schema,
+bool iterateRecords(TableInfo tableInfo,
                       RecordIterator recordIterator, bool autoClearPage) {
     // Checks if database is empty
     if (tableInfo->header->numPages == 0) {
-        return NULL;
+        return false;
     }
 
     // Stores id of last page stored in memory
@@ -315,11 +315,10 @@ Record iterateRecords(TableInfo tableInfo, Schema *schema,
         }
 
         recordIterator->lastSlot = nextSlot;
-        return parseRecord(recordIterator->page->ptr + nextSlot->offset,
-                           schema);
+        return true;
     }
 
-    return NULL;
+    return false;
 }
 
 void freeRecordIterator(RecordIterator iterator) {}

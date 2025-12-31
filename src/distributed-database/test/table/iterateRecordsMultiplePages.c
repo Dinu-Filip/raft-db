@@ -36,13 +36,14 @@ void testIteratorRecordsMultiplePages() {
     initialiseRecordIterator(&iterator);
     unsigned expected = 0;
 
-    Record record = iterateRecords(table, &schema, &iterator, true);
+    bool canContinue = iterateRecords(table, &iterator, true);
 
-    while (record != NULL) {
+    while (canContinue) {
+        Record record = parseRecord(iterator.page->ptr + iterator.lastSlot->offset, &schema);
         ASSERT_EQ(record->fields[0].intValue, expected);
         ASSERT_STR_EQ(record->fields[6].stringValue, "Dinu");
         expected++;
-        record = iterateRecords(table, &schema, &iterator, true);
+        canContinue = iterateRecords(table, &iterator, true);
     }
 
     ASSERT_EQ(expected, 500);

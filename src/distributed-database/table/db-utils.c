@@ -22,10 +22,10 @@ void displayTable(char *tableName) {
     struct RecordIterator iterator;
     initialiseRecordIterator(&iterator);
 
-    Record record = iterateRecords(relationInfo, schema, &iterator, true);
+    bool canIterate = iterateRecords(relationInfo, &iterator, true);
 
     outputTableSchema(schema);
-    while (record != NULL) {
+    while (canIterate) {
         printf("|");
         //
         // // Skips global idx
@@ -39,8 +39,8 @@ void displayTable(char *tableName) {
         // }
 
         printf("\n");
-        freeRecord(record);
-        record = iterateRecords(relationInfo, schema, &iterator, true);
+        // freeRecord(record);
+        // record = iterateRecords(relationInfo, schema, &iterator, true);
     }
 
     closeTable(relationInfo);
@@ -139,45 +139,45 @@ void extendedDisplayTable(char *tableName, TableType tableType) {
     struct RecordIterator iterator;
     initialiseRecordIterator(&iterator);
 
-    Record record = iterateRecords(relationInfo, schema, &iterator, true);
+    // Record record = iterateRecords(relationInfo, schema, &iterator, true);
 
-    if (record == NULL) {
-        printf("%s has no records\n", tableName);
-        return;
-    }
+    // if (record == NULL) {
+    //     printf("%s has no records\n", tableName);
+    //     return;
+    // }
 
     Page page = iterator.page;
     outputPageHeader(page);
     printf("-----------PAGE %hu RECORDS-----------\n", page->pageId);
 
     outputTableSchema(schema);
-    while (record != NULL) {
-        // Skips global idx
-        printf("|");
-        for (int i = 1; i < record->numValues; i++) {
-            Field field = record->fields[i];
-            // AttributeName attribute = schema->attributes[i - 1];
-            // printf(" ");
-            // outputDisplayField(field, MAX((int)strlen(attribute),
-            //                               schema->attributeSizes[i - 1]));
-            printf(" |");
-        }
-        freeRecord(record);
-        printf("\n");
-        record = iterateRecords(relationInfo, schema, &iterator, true);
-        if (record != NULL && iterator.page->pageId != page->pageId) {
-            page = iterator.page;
-            outputPageHeader(page);
-            printf("-----------PAGE %hu RECORDS-----------\n", page->pageId);
-            outputTableSchema(schema);
-        }
+    // while (record != NULL) {
+    //     // Skips global idx
+    //     printf("|");
+    //     for (int i = 1; i < record->numValues; i++) {
+    //         Field field = record->fields[i];
+    //         // AttributeName attribute = schema->attributes[i - 1];
+    //         // printf(" ");
+    //         // outputDisplayField(field, MAX((int)strlen(attribute),
+    //         //                               schema->attributeSizes[i - 1]));
+    //         printf(" |");
+    //     }
+        // freeRecord(record);
+        // printf("\n");
+        // record = iterateRecords(relationInfo, schema, &iterator, true);
+        // if (record != NULL && iterator.page->pageId != page->pageId) {
+        //     page = iterator.page;
+        //     outputPageHeader(page);
+        //     printf("-----------PAGE %hu RECORDS-----------\n", page->pageId);
+        //     outputTableSchema(schema);
+        // }
     }
-    freeRecordIterator(&iterator);
-    closeTable(relationInfo);
-    if (tableType == RELATION) {
-        freeSchema(schema);
-        closeTable(schemaInfo);
-    } else {
-        free(schema);
-    }
-}
+    // freeRecordIterator(&iterator);
+    // closeTable(relationInfo);
+    // if (tableType == RELATION) {
+    //     freeSchema(schema);
+    //     closeTable(schemaInfo);
+    // } else {
+    //     free(schema);
+    // }
+

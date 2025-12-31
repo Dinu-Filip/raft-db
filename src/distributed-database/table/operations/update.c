@@ -106,9 +106,10 @@ void updateTable(TableInfo tableInfo, TableInfo spaceMap,
     initialiseRecordIterator(&iterator);
 
     // Iterates through records, updating those that satisfy condition
-    Record record = iterateRecords(tableInfo, schema, &iterator, true);
+    bool canContinue = iterateRecords(tableInfo, &iterator, true);
 
-    while (record != NULL) {
+    while (canContinue) {
+        Record record = parseRecord(iterator.page->ptr + iterator.lastSlot->offset, schema);
         // Updates record that satisfies condition
         if (evaluate(record, cond)) {
             updateRecord(tableInfo, spaceMap, record, iterator.page,
@@ -116,7 +117,7 @@ void updateTable(TableInfo tableInfo, TableInfo spaceMap,
         }
 
         freeRecord(record);
-        record = iterateRecords(tableInfo, schema, &iterator, true);
+        canContinue = iterateRecords(tableInfo, &iterator, true);
     }
 
     freeRecordIterator(&iterator);
