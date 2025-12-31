@@ -59,8 +59,8 @@ typedef enum { RELATION, SCHEMA, FREE_MAP } TableType;
 typedef struct TableHeader *TableHeader;
 struct TableHeader {
     bool modified;
-    size_t pageSize;
-    size_t numPages;
+    uint16_t pageSize;
+    uint32_t numPages;
     uint32_t globalIdx;
 };
 

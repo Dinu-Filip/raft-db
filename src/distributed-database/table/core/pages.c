@@ -142,7 +142,7 @@ static void writePageHeader(Page page) {
         }
 
         memcpy(ptr + POS_ARRAY_IDX + i * (OFFSET_WIDTH + SIZE_WIDTH),
-                   &currentSlot.offset, OFFSET_WIDTH);
+               &currentSlot.offset, OFFSET_WIDTH);
         memcpy(ptr + POS_ARRAY_IDX + i * (OFFSET_WIDTH + SIZE_WIDTH) +
                    OFFSET_WIDTH,
                &currentSlot.size, SIZE_WIDTH);
@@ -204,44 +204,41 @@ void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
 
     // All slots must be full, so adds slot to end
     resizeRecordSlots(&page->header->slots);
-    RecordSlot *newSlot = &page->header->slots.slots[page->header->slots.size++];
+    RecordSlot *newSlot =
+        &page->header->slots.slots[page->header->slots.size++];
     newSlot->size = record->size;
     newSlot->offset = recordStart;
     newSlot->modified = true;
     page->header->freeSpace -= SLOT_SIZE;
 }
 
-static QueryResult getFreeSpaces(TableInfo spaceInfo, char *tableName,
-                                 size_t recordSize) {
-    LOG("GET FREE SPACE\n");
+static QueryResult getFreeSpaces(TableInfo spaceInfo, size_t recordSize) {
     char template[] = "select * from %s where %s >= %d;";
     char sql[100];
-    snprintf(sql, sizeof(sql), template, spaceInfo->name, SPACE_TABLE_FREE_SPACE, recordSize);
+    snprintf(sql, sizeof(sql), template, spaceInfo->name,
+             SPACE_TABLE_FREE_SPACE, recordSize);
 
-    QueryResult res =
-        executeOperation(sqlToOperation(sql));
+    QueryResult res = executeQualifiedOperation(sqlToOperation(sql), FREE_MAP);
 
     return res;
 }
 
-static void insertFreeSpace(char *tableName, TableInfo spaceInfo, Page page) {
+static void insertFreeSpace(TableInfo spaceInfo, Page page) {
     LOG("Inserting free space");
 
     int id = page->pageId;
     int freeSpace = page->header->freeSpace;
 
-    char template[] = "insert into %s values (%s, %d, %d);";
+    char template[] = "insert into %s values (%d, %d);";
     char sql[100];
     snprintf(sql, sizeof(sql), template, spaceInfo->name, id, freeSpace);
 
-    executeOperation(sqlToOperation(sql));
+    executeQualifiedOperation(sqlToOperation(sql), FREE_MAP);
 }
 
 Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
                   TableType tableType) {
-    LOG("NEXT FREE PAGE\n");
     if (tableType == FREE_MAP || tableType == SCHEMA) {
-        LOG("SCHEMA OR MAP FREE PAGE\n");
         for (int i = 0; i < tableInfo->header->numPages; i++) {
             Page page = getPage(tableInfo, 1 + i);
 
@@ -257,14 +254,12 @@ Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
     }
 
     // Gets all pages with sufficient free space from the space inventory
-    QueryResult spaceMapRes =
-        getFreeSpaces(spaceInfo, tableInfo->name, recordSize);
+    QueryResult spaceMapRes = getFreeSpaces(spaceInfo, recordSize);
 
     if (spaceMapRes->records->size == 0) {
-        LOG("ADD NEW PAGE TO SPACE MAP\n");
         Page page = addPage(tableInfo);
 
-        insertFreeSpace(tableInfo->name, spaceInfo, page);
+        insertFreeSpace(spaceInfo, page);
         freeRecordArray(spaceMapRes->records);
         free(spaceMapRes);
         return page;
@@ -283,7 +278,7 @@ Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
 void updatePage(TableInfo tableInfo, Page page) {
     // Updates page header if modified
     writePageHeader(page);
-    
+
     fseek(tableInfo->table, _PAGE_SIZE * page->pageId, SEEK_SET);
     fwrite(page->ptr, sizeof(uint8_t), _PAGE_SIZE, tableInfo->table);
     fseek(tableInfo->table, 0, SEEK_SET);

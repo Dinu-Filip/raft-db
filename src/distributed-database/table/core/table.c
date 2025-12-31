@@ -128,7 +128,7 @@ void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
     char template[] = "update %s set %s = %d where id = %d;";
     char sql[100];
 
-    snprintf(sql, sizeof(sql), template, SPACE_TABLE_FREE_SPACE, freeSpace, id);
+    snprintf(sql, sizeof(sql), template, spaceInventory->name, SPACE_TABLE_FREE_SPACE, freeSpace, id);
     executeQualifiedOperation(sqlToOperation(sql), FREE_MAP);
 }
 

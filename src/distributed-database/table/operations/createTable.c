@@ -22,7 +22,7 @@ static void setSchema(char *tableName, QueryTypes descriptors) {
     Schema dictSchema = getDictSchema();
 
     // Insertion command template
-    char template[] = "insert into %s values (%s, %d, %d, %d, %d, %s);";
+    char template[] = "insert into %s values (%d, %d, %d, %s, %s);";
     char sql[500];
 
     unsigned numTypes = descriptors->numTypes;
@@ -30,7 +30,7 @@ static void setSchema(char *tableName, QueryTypes descriptors) {
     // Inserts fixed-length fields with index
     for (int i = 0; i < numTypes; i++) {
         QueryTypeDescriptor type = descriptors->types[i];
-        snprintf(sql, sizeof(sql), template, schemaName, tableName, type->type, i, type->size, type->name);
+        snprintf(sql, sizeof(sql), template, schemaName, i, type->type, type->size, tableName, type->name);
         insertOperation(schemaInfo, NULL, &dictSchema, sqlToOperation(sql), SCHEMA);
     }
 

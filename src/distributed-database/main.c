@@ -1,7 +1,14 @@
+#include "test/operations/createTable.h"
+#include "test/operations/insertAllAttributes.h"
+#include "test/operations/selectAttrSubset.h"
+#include "test/operations/selectBetween.h"
+#include "test/sql/createTable.h"
+#include "test/sql/selectAll.h"
 #include "test/table/addSinglePageToFile.h"
 #include "test/table/initialiseDatabaseFile.h"
 #include "test/table/iterateRecordsMultiplePages.h"
 
 int main() {
-    testIteratorRecordsMultiplePages();
+    testCreateTableOperation();
+    testInsertAllAttributesSinglePage();
 }

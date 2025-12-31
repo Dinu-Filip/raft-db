@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../core/pages.h"
 #include "../core/record.h"
@@ -12,12 +13,32 @@ void insertInto(TableInfo tableInfo, TableInfo spaceMap, Schema *schema,
                 QueryAttributes attributes, QueryValues values,
                 TableType type) {
     // Creates record from query
+    struct QueryAttributes insertAttributes;
+    if (attributes->numAttributes == 0) {
+        insertAttributes.attributes = malloc(sizeof(AttributeName) * schema->numAttrs);
+        assert(insertAttributes.attributes);
+
+        for (int i = 0; i < schema->numAttrs; i++) {
+            insertAttributes.attributes[i] = strdup(schema->attrInfos[i].name);
+        }
+
+        insertAttributes.numAttributes = schema->numAttrs;
+    } else {
+        insertAttributes = *attributes;
+    }
+
     Record record =
-        parseQuery(schema, attributes, values, tableInfo->header->globalIdx);
+        parseQuery(schema, &insertAttributes, values, tableInfo->header->globalIdx);
     outputRecord(record);
 
     insertRecord(tableInfo, spaceMap, record, type);
     freeRecord(record);
+
+    if (attributes->numAttributes == 0) {
+        for (int i = 0; i < schema->numAttrs; i++) {
+            free(insertAttributes.attributes[i]);
+        }
+    }
 }
 
 void insertRecord(TableInfo tableInfo, TableInfo spaceMap, Record record, TableType type) {

@@ -21,38 +21,40 @@ QueryResult executeQualifiedOperation(Operation operation, TableType tableType) 
     }
 
     TableInfo tableInfo = openTable(operation->tableName);
-    Schema *schema;
+    Schema schema;
     TableInfo spaceInfo = NULL;
 
     if (tableType == RELATION) {
-        TableInfo schemaInfo = openTable("schemas");
-        schema = getSchema(schemaInfo, operation->tableName);
+        char schemaName[100];
+        snprintf(schemaName, sizeof(schemaName), "%s-schema", operation->tableName);
+        TableInfo schemaInfo = openTable(schemaName);
+        schema = *getSchema(schemaInfo, operation->tableName);
 
-        spaceInfo = openTable("space-inventory");
+        char spaceName[100];
+        snprintf(spaceName, sizeof(spaceName), "%s-space-inventory", operation->tableName);
+        spaceInfo = openTable(spaceName);
     } else if (tableType == SCHEMA) {
         Schema dictSchema = getDictSchema();
-        schema = &dictSchema;
-
-        spaceInfo = openTable("space-inventory");
+        schema = dictSchema;
     } else {
-        TableInfo schemaInfo = openTable("schemas");
-        schema = getSchema(schemaInfo, operation->tableName);
+        Schema spaceSchema = getInventorySchema();
+        schema = spaceSchema;
     }
 
     QueryResult res = NULL;
 
     switch (operation->queryType) {
         case SELECT:
-            res = selectOperation(tableInfo, schema, operation);
+            res = selectOperation(tableInfo, &schema, operation);
             break;
         case INSERT:
-            insertOperation(tableInfo, spaceInfo, schema, operation, RELATION);
+            insertOperation(tableInfo, spaceInfo, &schema, operation, tableType);
             break;
         case UPDATE:
-            updateOperation(tableInfo, spaceInfo, schema, operation);
+            updateOperation(tableInfo, spaceInfo, &schema, operation);
             break;
         case DELETE:
-            deleteOperation(tableInfo, spaceInfo, schema, operation);
+            deleteOperation(tableInfo, spaceInfo, &schema, operation);
             break;
         default:
             LOG_ERROR("Unexpected operation\n");

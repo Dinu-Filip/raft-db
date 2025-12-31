@@ -26,9 +26,19 @@
 
 #define NUM_SCHEMA_ATTRIBUTES 5
 
+#define SPACE_PAGE_ID "PAGE_ID"
+#define FREE_SPACE "FREE_SPACE"
+
+#define PAGE_ID_IDX 0
+#define FREE_SPACE_IDX 1
+
+#define NUM_SPACE_ATTRIBUTES 2
+
 static AttrInfo schemaAttrInfos[NUM_SCHEMA_ATTRIBUTES];
 static Schema schema = {.attrInfos = schemaAttrInfos,
                         .numAttrs = NUM_SCHEMA_ATTRIBUTES};
+static AttrInfo spaceAttrInfos[NUM_SPACE_ATTRIBUTES];
+static Schema spaceSchema = {.attrInfos = spaceAttrInfos, .numAttrs = NUM_SPACE_ATTRIBUTES};
 
 static int schemaRecordCompare(const void *record1, const void *record2) {
     // Comparator for sorting schema records on index
@@ -44,6 +54,31 @@ static int schemaRecordCompare(const void *record1, const void *record2) {
         return 0;
     }
     return 1;
+}
+
+Schema getInventorySchema() {
+    static bool initialised = false;
+
+    if (initialised) {
+        return spaceSchema;
+    }
+
+    spaceSchema.numAttrs = 2;
+
+    AttrInfo *pageIdInfo = &spaceAttrInfos[PAGE_ID_IDX];
+    pageIdInfo->type = INT;
+    pageIdInfo->loc = INT_WIDTH * PAGE_ID_IDX;
+    pageIdInfo->size = INT_WIDTH;
+    pageIdInfo->name = SPACE_PAGE_ID;
+
+    AttrInfo *freeSpaceInfo = &spaceAttrInfos[FREE_SPACE_IDX];
+    freeSpaceInfo->type = INT;
+    freeSpaceInfo->loc = INT_WIDTH * FREE_SPACE_IDX;
+    freeSpaceInfo->size = INT_WIDTH;
+    freeSpaceInfo->name = FREE_SPACE;
+
+    initialised = true;
+    return spaceSchema;
 }
 
 Schema getDictSchema() {
@@ -94,13 +129,11 @@ Schema *getSchema(TableInfo schemaInfo, char *tableName) {
     Schema *schema = malloc(sizeof(Schema));
     assert(schema != NULL);
 
-    char template[] = "select * from %s where %s = %s;";
+    char template[] = "select * from %s";
     char sql[100];
-    snprintf(sql, sizeof(sql), template, schemaInfo->name, SCHEMA_RELATION_NAME,
-             tableName);
+    snprintf(sql, sizeof(sql), template, schemaInfo->name);
 
-    Schema dictSchema;
-    getDictSchema(&dictSchema);
+    Schema dictSchema = getDictSchema();
 
     // Retrieves records from schema store for this table
     QueryResult result =
@@ -140,6 +173,7 @@ Schema *getSchema(TableInfo schemaInfo, char *tableName) {
     freeRecordArray(result->records);
     free(result);
 
+    schema->numAttrs = numRecords;
     return schema;
 }
 

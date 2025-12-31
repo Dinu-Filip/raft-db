@@ -12,7 +12,6 @@ void testCreateTableOperation() {
     char sql[] = "create table students (name varstr(50), age int, height float, student bool, code str(4));";
 
     createTable(sqlToOperation(sql));
-    LOG("Created table");
     TableInfo schemaTable = openTable("students-schema");
     Schema schema = getDictSchema();
 
@@ -22,13 +21,17 @@ void testCreateTableOperation() {
 
     START_OUTER_TEST("Test creation of new table")
     ASSERT_EQ(result->records->size, 5);
-    ASSERT_EQ(result->records->records[0]->fields[1].intValue, INT);
-    ASSERT_EQ(result->records->records[1]->fields[1].intValue, FLOAT);
-    ASSERT_EQ(result->records->records[2]->fields[1].intValue, BOOL);
-    ASSERT_EQ(result->records->records[3]->fields[1].intValue, STR);
-    ASSERT_EQ(result->records->records[3]->fields[1].size, 4);
-    ASSERT_EQ(result->records->records[4]->fields[1].intValue, VARSTR);
-    ASSERT_EQ(result->records->records[4]->fields[1].size, 50);
+    ASSERT_EQ(result->records->records[0]->fields[1].intValue, VARSTR);
+    ASSERT_EQ(result->records->records[0]->fields[2].intValue, 50);
+    ASSERT_EQ(result->records->records[1]->fields[1].intValue, INT);
+    ASSERT_EQ(result->records->records[2]->fields[1].intValue, FLOAT);
+    ASSERT_STR_EQ(result->records->records[2]->fields[4].stringValue, "height");
+    ASSERT_EQ(result->records->records[3]->fields[1].intValue, BOOL);
+    ASSERT_EQ(result->records->records[4]->fields[1].intValue, STR);
+    ASSERT_EQ(result->records->records[4]->fields[2].intValue, 4);
+
     FINISH_OUTER_TEST
     PRINT_SUMMARY
+    closeTable(schemaTable);
+    LOG("done");
 }

@@ -45,4 +45,6 @@ extern Schema getDictSchema();
  */
 extern void freeSchema(Schema *schema);
 
+extern Schema getInventorySchema();
+
 #endif  // SCHEMA_H
