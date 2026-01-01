@@ -30,7 +30,7 @@ typedef struct Operand *Operand;
 struct Operand {
     AttributeType type;
     union {
-        int intOp;
+        int32_t intOp;
         char *strOp;
         float floatOp;
         bool boolOp;

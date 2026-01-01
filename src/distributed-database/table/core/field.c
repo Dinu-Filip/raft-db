@@ -44,7 +44,7 @@ void writeField(uint8_t *fieldStart, Field field) {
 void outputField(Field field, unsigned rightPadding) {
     switch (field.type) {
         case INT:
-            fprintf(stderr, "%-*d", rightPadding, field.intValue);
+            fprintf(stderr, "%d", field.intValue);
             break;
         case FLOAT:
             fprintf(stderr, "%-*f", rightPadding, field.floatValue);

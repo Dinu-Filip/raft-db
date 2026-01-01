@@ -39,9 +39,6 @@
 #define DB_BASE_DIRECTORY "../../../raft-db"
 
 #define SLOT_SIZE (OFFSET_WIDTH + SIZE_WIDTH)
-#define SPACE_TABLE_FREE_SPACE "free_space"
-#define SPACE_TABLE_RELATION_NAME "relation"
-#define SPACE_TABLE_PAGE_ID "page_id"
 
 #define SPACE_ID_IDX 0
 #define SPACE_NAME_IDX 1

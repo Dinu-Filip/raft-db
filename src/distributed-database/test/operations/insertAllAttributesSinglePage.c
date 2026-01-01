@@ -1,7 +1,6 @@
-#include "insertAllAttributes.h"
-
 #include <stdio.h>
 
+#include "insertAllAttributesSinglePage.h"
 #include "log.h"
 #include "table/core/recordArray.h"
 #include "table/operations/operation.h"

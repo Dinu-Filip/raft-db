@@ -29,7 +29,7 @@ struct PageHeader {
     bool modified;
     uint16_t numRecords;
     uint16_t recordStart;
-    uint16_t freeSpace;
+    int16_t freeSpace;
     RecordSlotArray slots;
 };
 
@@ -118,5 +118,7 @@ extern void getRecordSlot(RecordSlot *slot, uint8_t *idx);
  * @param page page to read records from
  */
 extern void defragmentRecords(Page page);
+
+extern QueryResult getFreeSpaces(TableInfo spaceInfo, size_t recordSize);
 
 #endif  // PAGES_H

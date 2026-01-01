@@ -6,11 +6,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../operations/update.h"
-#include "../schema.h"
 #include "log.h"
 #include "pages.h"
+#include "record.h"
+#include "recordArray.h"
 #include "table/operations/sqlToOperation.h"
+#include "table/operations/update.h"
 
 #define INITIAL_NUM_PAGES 0
 #define INITIAL_START_PAGE (-1)
@@ -125,11 +126,12 @@ void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
     int freeSpace = page->header->freeSpace;
 
     // Update space inventory table with new free space in page
-    char template[] = "update %s set %s = %d where id = %d;";
+    char template[] = "update %s set FREE_SPACE = %d where PAGE_ID = %d;";
     char sql[100];
 
-    snprintf(sql, sizeof(sql), template, spaceInventory->name, SPACE_TABLE_FREE_SPACE, freeSpace, id);
-    executeQualifiedOperation(sqlToOperation(sql), FREE_MAP);
+    snprintf(sql, sizeof(sql), template, spaceInventory->name, freeSpace, id);
+    Schema spaceSchema = getInventorySchema();
+    updateOperation(spaceInventory, NULL, &spaceSchema, sqlToOperation(sql));
 }
 
 void closeTable(TableInfo tableInfo) {

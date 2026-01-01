@@ -7,6 +7,7 @@
 #include "../core/pages.h"
 #include "../core/record.h"
 #include "log.h"
+#include "table/core/recordArray.h"
 #include "table/core/table.h"
 
 void insertInto(TableInfo tableInfo, TableInfo spaceMap, Schema *schema,
@@ -29,7 +30,6 @@ void insertInto(TableInfo tableInfo, TableInfo spaceMap, Schema *schema,
 
     Record record =
         parseQuery(schema, &insertAttributes, values, tableInfo->header->globalIdx);
-    outputRecord(record);
 
     insertRecord(tableInfo, spaceMap, record, type);
     freeRecord(record);

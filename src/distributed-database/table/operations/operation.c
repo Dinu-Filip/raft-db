@@ -11,6 +11,9 @@
 #include "insert.h"
 #include "log.h"
 #include "select.h"
+#include "table/core/pages.h"
+#include "table/core/record.h"
+#include "table/core/recordArray.h"
 #include "table/core/table.h"
 #include "update.h"
 
@@ -29,6 +32,7 @@ QueryResult executeQualifiedOperation(Operation operation, TableType tableType) 
         snprintf(schemaName, sizeof(schemaName), "%s-schema", operation->tableName);
         TableInfo schemaInfo = openTable(schemaName);
         schema = *getSchema(schemaInfo, operation->tableName);
+        closeTable(schemaInfo);
 
         char spaceName[100];
         snprintf(spaceName, sizeof(spaceName), "%s-space-inventory", operation->tableName);
@@ -59,6 +63,11 @@ QueryResult executeQualifiedOperation(Operation operation, TableType tableType) 
         default:
             LOG_ERROR("Unexpected operation\n");
     }
+
+    if (spaceInfo != NULL) {
+        closeTable(spaceInfo);
+    }
+    closeTable(tableInfo);
 
     return res;
 }

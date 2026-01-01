@@ -1,5 +1,6 @@
 #include "test/operations/createTable.h"
-#include "test/operations/insertAllAttributes.h"
+#include "test/operations/insertAllAttributesMultiPage.h"
+#include "test/operations/insertAllAttributesSinglePage.h"
 #include "test/operations/selectAttrSubset.h"
 #include "test/operations/selectBetween.h"
 #include "test/sql/createTable.h"
@@ -10,5 +11,5 @@
 
 int main() {
     testCreateTableOperation();
-    testInsertAllAttributesSinglePage();
+    testInsertAllAttributesMultiPage();
 }

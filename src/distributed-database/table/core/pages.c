@@ -11,6 +11,7 @@
 #include "record.h"
 #include "recordArray.h"
 #include "table/operations/operation.h"
+#include "table/operations/select.h"
 #include "table/operations/sqlToOperation.h"
 
 #define INITIAL_NUM_SLOTS 10
@@ -212,13 +213,13 @@ void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
     page->header->freeSpace -= SLOT_SIZE;
 }
 
-static QueryResult getFreeSpaces(TableInfo spaceInfo, size_t recordSize) {
-    char template[] = "select * from %s where %s >= %d;";
-    char sql[100];
-    snprintf(sql, sizeof(sql), template, spaceInfo->name,
-             SPACE_TABLE_FREE_SPACE, recordSize);
-
-    QueryResult res = executeQualifiedOperation(sqlToOperation(sql), FREE_MAP);
+QueryResult getFreeSpaces(TableInfo spaceInfo, size_t recordSize) {
+    char template[] = "select * from %s where FREE_SPACE >= %d;";
+    char sql[300];
+    // Assumes in the worst case that a new slot needs to be added to the end
+    snprintf(sql, sizeof(sql), template, spaceInfo->name, recordSize + SLOT_SIZE);
+    Schema spaceSchema = getInventorySchema();
+    QueryResult res = selectOperation(spaceInfo, &spaceSchema, sqlToOperation(sql));
 
     return res;
 }
@@ -232,8 +233,8 @@ static void insertFreeSpace(TableInfo spaceInfo, Page page) {
     char template[] = "insert into %s values (%d, %d);";
     char sql[100];
     snprintf(sql, sizeof(sql), template, spaceInfo->name, id, freeSpace);
-
-    executeQualifiedOperation(sqlToOperation(sql), FREE_MAP);
+    Schema spaceSchema = getInventorySchema();
+    insertOperation(spaceInfo, NULL, &spaceSchema, sqlToOperation(sql), FREE_MAP);
 }
 
 Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
@@ -263,6 +264,11 @@ Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
         freeRecordArray(spaceMapRes->records);
         free(spaceMapRes);
         return page;
+    }
+    LOG("In next free page");
+    outputRecord(spaceMapRes->records->records[0]);
+    if (spaceMapRes->records->records[0]->fields[1].intValue == 29) {
+        LOG("here");
     }
 
     // Returns first page with sufficient space

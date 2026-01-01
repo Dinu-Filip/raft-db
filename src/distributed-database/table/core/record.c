@@ -11,10 +11,11 @@ static Record initialiseRecord(unsigned numAttributes) {
     assert(record != NULL);
 
     // Allocates array of fields of record
-    record->fields = malloc(sizeof(Field) * numAttributes);
+    record->fields = calloc(numAttributes, sizeof(Field));
     assert(record->fields != NULL);
 
     record->numValues = numAttributes;
+
     return record;
 }
 
@@ -93,7 +94,7 @@ Record parseQuery(Schema *schema, QueryAttributes attributes,
 
             if (record->fields[j].type == VARSTR) {
                 // Adds for variable offset field
-                recordSize += SLOT_SIZE;
+                recordSize += OFFSET_WIDTH;
             }
 
             break;
@@ -102,6 +103,8 @@ Record parseQuery(Schema *schema, QueryAttributes attributes,
 
     // For start of static length fields
     recordSize += RECORD_HEADER_WIDTH;
+    // For sentinel slot
+    recordSize += OFFSET_WIDTH;
 
     record->size = recordSize;
 
@@ -238,7 +241,7 @@ void writeRecord(uint8_t *ptr, Record record) {
     numVar++;
     varOffset += GLOBAL_ID_WIDTH;
 
-    // Writes offset to start of static fields
+    // Writes number of variable length fields
     memcpy(ptr, &numVar, RECORD_HEADER_WIDTH);
 
     unsigned slotOffset = RECORD_HEADER_WIDTH;

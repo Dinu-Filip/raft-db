@@ -11,6 +11,7 @@
 #include "insert.h"
 #include "log.h"
 #include "operation.h"
+#include "table/core/recordArray.h"
 
 static void updateField(Field *field, Operand op) {
     switch (field->type) {
@@ -40,7 +41,9 @@ static void updateField(Field *field, Operand op) {
 static void updateRecord(TableInfo tableInfo,
                          TableInfo spaceMap, Record record, Page page,
                          QueryAttributes queryAttributes,
-                         QueryValues queryValues, RecordIterator iterator) {
+                         QueryValues queryValues, RecordIterator iterator, Schema *schema) {
+    LOG("Space record");
+    outputRecord(record);
     size_t oldSize = record->size;
     for (int j = 0; j < record->numValues; j++) {
         // Only updates fields specified in attributes list
@@ -49,7 +52,7 @@ static void updateRecord(TableInfo tableInfo,
             Field *field = &record->fields[j];
 
             // Skips if attribute and field do not match
-            if (strcmp(field->attribute, attribute) == 0) {
+            if (strcmp(field->attribute, attribute) != 0) {
                 continue;
             }
 
@@ -80,7 +83,9 @@ static void updateRecord(TableInfo tableInfo,
         updatePage(tableInfo, page);
 
         // Updates space inventory for page
-        updateSpaceInventory(spaceMap->name, spaceMap, page);
+        if (spaceMap != NULL) {
+            updateSpaceInventory(spaceMap->name, spaceMap, page);
+        }
 
         // Insertion will find new page in which to allocate record
         insertRecord(tableInfo, spaceMap, record, RELATION);
@@ -94,8 +99,17 @@ static void updateRecord(TableInfo tableInfo,
     if (record->size < oldSize) {
         LOG("Update record in place\n");
         defragmentRecords(iterator->page);
-        updateSpaceInventory(spaceMap->name, spaceMap, page);
-        updatePage(tableInfo, page);
+        if (spaceMap != NULL) {
+            updateSpaceInventory(spaceMap->name, spaceMap, page);
+        }
+    }
+    updatePage(tableInfo, page);
+    if (spaceMap == NULL) {
+        QueryResult spaceMapRes = getFreeSpaces(tableInfo, 27);
+        if (spaceMapRes->records->size > 0) {
+            LOG("After update");
+            outputRecord(spaceMapRes->records->records[0]);
+        }
     }
 }
 
@@ -113,7 +127,7 @@ void updateTable(TableInfo tableInfo, TableInfo spaceMap,
         // Updates record that satisfies condition
         if (evaluate(record, cond)) {
             updateRecord(tableInfo, spaceMap, record, iterator.page,
-                         queryAttributes, queryValues, &iterator);
+                         queryAttributes, queryValues, &iterator, schema);
         }
 
         freeRecord(record);
