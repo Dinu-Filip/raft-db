@@ -4,6 +4,7 @@
 #include "test/operations/selectAttrSubset.h"
 #include "test/operations/selectBetween.h"
 #include "test/operations/updateStaticFields.h"
+#include "test/operations/updateVarAttributes.h"
 #include "test/sql/createTable.h"
 #include "test/sql/selectAll.h"
 #include "test/table/addSinglePageToFile.h"
@@ -13,5 +14,5 @@
 int main() {
     testCreateTableOperation();
     testInsertAllAttributesMultiPage();
-    testUpdateStaticFields();
+    testUpdateVarAttributes();
 }

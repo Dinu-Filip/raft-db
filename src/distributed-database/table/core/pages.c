@@ -19,7 +19,7 @@
 static void initialisePageHeaderSlots(PageHeader header) {
     unsigned capacity = header->slots.size > 0 ? header->slots.size : 1;
 
-    header->slots.slots = malloc(sizeof(RecordSlot) * capacity);
+    header->slots.slots = calloc(capacity, sizeof(RecordSlot));
     assert(header->slots.slots != NULL);
 
     header->slots.capacity = capacity;
@@ -121,7 +121,6 @@ Page addPage(TableInfo table) {
 }
 
 static void writePageHeader(Page page) {
-    LOG("Update page header");
     PageHeader header = page->header;
 
     if (!header->modified) {
@@ -184,6 +183,8 @@ static void resizeRecordSlots(RecordSlotArray *array) {
 }
 
 void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
+    static int numInserted = 0;
+
     // Updates free space log in page header
     page->header->freeSpace -= record->size;
 
@@ -201,12 +202,14 @@ void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
             slot->modified = true;
             return;
         }
+        assert(slot->offset != 0);
     }
 
     // All slots must be full, so adds slot to end
     resizeRecordSlots(&page->header->slots);
     RecordSlot *newSlot =
         &page->header->slots.slots[page->header->slots.size++];
+    assert(page->header->slots.size == page->header->numRecords);
     newSlot->size = record->size;
     newSlot->offset = recordStart;
     newSlot->modified = true;
@@ -265,11 +268,6 @@ Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
         free(spaceMapRes);
         return page;
     }
-    LOG("In next free page");
-    outputRecord(spaceMapRes->records->records[0]);
-    if (spaceMapRes->records->records[0]->fields[1].intValue == 29) {
-        LOG("here");
-    }
 
     // Returns first page with sufficient space
     size_t pageId =
@@ -305,19 +303,14 @@ void defragmentRecords(Page page) {
     qsort(slots, numSlots, sizeof(RecordSlot *), &compareSlots);
 
     size_t recordStart = _PAGE_SIZE;
-
-    // Keeps track of old offset to first record
-    unsigned oldStart = page->header->recordStart;
+    size_t freeSpace = _PAGE_SIZE - 3 * NUM_SLOTS_WIDTH - numSlots * SLOT_SIZE;
 
     unsigned numRecords = page->header->numRecords;
 
     // Ensures that any empty slots are moved to the end
-    if (numRecords < page->header->slots.size) {
-        assert(slots[page->header->numRecords]->offset == 0);
-    }
-
     for (int i = 0; i < numRecords; i++) {
         RecordSlot *slot = slots[i];
+
         slot->modified = true;
 
         // Calculates expected offset of record from end of page
@@ -334,10 +327,11 @@ void defragmentRecords(Page page) {
 
         slot->modified = true;
         slot->offset = recordStart;
+        freeSpace -= slot->size;
     }
 
     // Adds recovered space
-    page->header->freeSpace += recordStart - oldStart;
+    page->header->freeSpace = freeSpace;
 
     page->header->recordStart = recordStart;
     page->header->modified = true;

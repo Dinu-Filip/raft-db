@@ -29,7 +29,7 @@ struct PageHeader {
     bool modified;
     uint16_t numRecords;
     uint16_t recordStart;
-    int16_t freeSpace;
+    int freeSpace;
     RecordSlotArray slots;
 };
 

@@ -39,6 +39,7 @@ void testInsertAllAttributesMultiPage() {
     TableInfo table = openTable("students");
     for (int i = 0; i < spaceRes->records->size; i++) {
         Page page = getPage(table, i + 1);
+        ASSERT_EQ(page->header->numRecords, page->header->slots.size)
         ASSERT_EQ(table->header->pageSize, page->header->numRecords * (27 + SLOT_SIZE) + 6 + page->header->freeSpace)
         ASSERT_EQ(spaceRes->records->records[i]->fields[1].intValue, page->header->freeSpace)
         freePage(page);

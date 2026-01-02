@@ -21,7 +21,6 @@
 char DB_DIRECTORY[MAX_FILE_NAME_LEN] = {'\0'};
 
 static void initialiseHeader(FILE *headerptr) {
-    LOG("Initialise header");
     fseek(headerptr, PAGE_SIZE_IDX, SEEK_SET);
 
     const int pageSize = _PAGE_SIZE;
@@ -39,7 +38,6 @@ void initialiseTable(char *name) {
     char tableFile[MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN];
     snprintf(tableFile, MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN, "%s/%s.%s",
              DB_BASE_DIRECTORY, name, DB_EXTENSION);
-    LOG("Initialise table %s\n", name);
 
     FILE *table = fopen(tableFile, "wb+");
     assert(table != NULL);
@@ -58,7 +56,6 @@ TableInfo openTable(char *tableName) {
     char tableFile[MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN];
     snprintf(tableFile, MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN, "%s/%s.%s",
              DB_BASE_DIRECTORY, tableName, DB_EXTENSION);
-    LOG("Open %s\n", tableFile);
 
     FILE *table = fopen(tableFile, "rb+");
     assert(table != NULL);
@@ -82,7 +79,6 @@ int compareSlots(const void *slot1, const void *slot2) {
 }
 
 TableHeader getTableHeader(FILE *table) {
-    LOG("Reading header");
     TableHeader header = malloc(sizeof(struct TableHeader));
     assert(header != NULL);
 
@@ -101,12 +97,9 @@ TableHeader getTableHeader(FILE *table) {
 void freeTableHeader(TableHeader tableHeader) { free(tableHeader); }
 
 void updateTableHeader(TableInfo tableInfo) {
-    LOG("Update table header\n");
-
     TableHeader header = tableInfo->header;
 
     if (header->modified) {
-        LOG("Num pages modified: %lu\n", header->numPages);
         fseek(tableInfo->table, 0, SEEK_SET);
         fwrite(&header->pageSize, sizeof(uint8_t), PAGE_SIZE_WIDTH,
                tableInfo->table);
@@ -120,8 +113,6 @@ void updateTableHeader(TableInfo tableInfo) {
 
 void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
                           Page page) {
-    LOG("Update space inventory\n");
-
     int id = page->pageId;
     int freeSpace = page->header->freeSpace;
 

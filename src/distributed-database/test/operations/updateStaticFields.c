@@ -22,5 +22,4 @@ void testUpdateStaticFields() {
     }
     FINISH_OUTER_TEST
     PRINT_SUMMARY
-
 }

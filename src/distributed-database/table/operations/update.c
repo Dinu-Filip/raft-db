@@ -41,9 +41,7 @@ static void updateField(Field *field, Operand op) {
 static void updateRecord(TableInfo tableInfo,
                          TableInfo spaceMap, Record record, Page page,
                          QueryAttributes queryAttributes,
-                         QueryValues queryValues, RecordIterator iterator, Schema *schema) {
-    LOG("Space record");
-    outputRecord(record);
+                         QueryValues queryValues, RecordIterator iterator, RecordArray buffer) {
     size_t oldSize = record->size;
     for (int j = 0; j < record->numValues; j++) {
         // Only updates fields specified in attributes list
@@ -69,26 +67,26 @@ static void updateRecord(TableInfo tableInfo,
 
             // Only variable-length string can change size of record
             if (field->type == VARSTR) {
-                record->size += field->size - oldFieldSize;
+                if (oldFieldSize > field->size) {
+                    record->size -= oldFieldSize - field->size;
+                } else {
+                    record->size += field->size - oldFieldSize;
+                }
             }
         }
     }
-
+    static int numRemoved = 0;
+    static int prevId = 0;
     if (record->size > oldSize) {
+        if (page->pageId != prevId) {
+            numRemoved = 0;
+            prevId = page->pageId;
+        }
         // Record cannot fit in old position so needs to be removed
         removeRecord(page, iterator->lastSlot, record->size);
-
-        // Defragments page to remove extra space
-        defragmentRecords(page);
-        updatePage(tableInfo, page);
-
-        // Updates space inventory for page
-        if (spaceMap != NULL) {
-            updateSpaceInventory(spaceMap->name, spaceMap, page);
-        }
-
-        // Insertion will find new page in which to allocate record
-        insertRecord(tableInfo, spaceMap, record, RELATION);
+        numRemoved++;
+        assert(numRemoved + page->header->numRecords == page->header->slots.size);
+        addRecord(buffer, record);
         return;
     }
 
@@ -97,19 +95,7 @@ static void updateRecord(TableInfo tableInfo,
 
     // Record takes up less space than before so page needs to be defragmented
     if (record->size < oldSize) {
-        LOG("Update record in place\n");
-        defragmentRecords(iterator->page);
-        if (spaceMap != NULL) {
-            updateSpaceInventory(spaceMap->name, spaceMap, page);
-        }
-    }
-    updatePage(tableInfo, page);
-    if (spaceMap == NULL) {
-        QueryResult spaceMapRes = getFreeSpaces(tableInfo, 27);
-        if (spaceMapRes->records->size > 0) {
-            LOG("After update");
-            outputRecord(spaceMapRes->records->records[0]);
-        }
+        iterator->lastSlot->size = record->size;
     }
 }
 
@@ -121,16 +107,38 @@ void updateTable(TableInfo tableInfo, TableInfo spaceMap,
 
     // Iterates through records, updating those that satisfy condition
     bool canContinue = iterateRecords(tableInfo, &iterator, true);
+    RecordArray recordBuffer = createRecordArray();
 
     while (canContinue) {
         Record record = parseRecord(iterator.page->ptr + iterator.lastSlot->offset, schema);
+
         // Updates record that satisfies condition
         if (evaluate(record, cond)) {
             updateRecord(tableInfo, spaceMap, record, iterator.page,
-                         queryAttributes, queryValues, &iterator, schema);
+                         queryAttributes, queryValues, &iterator, recordBuffer);
         }
 
-        freeRecord(record);
+        Page oldPage = iterator.page;
+        if (iterator.slotIdx == oldPage->header->slots.size) {
+            // Defragments page to remove extra space
+            defragmentRecords(oldPage);
+            updatePage(tableInfo, oldPage);
+
+            // Updates space inventory for page
+            if (spaceMap != NULL) {
+                updateSpaceInventory(spaceMap->name, spaceMap, oldPage);
+            }
+
+            for (int i = 0; i < recordBuffer->size; i++) {
+                Record updateRecord = recordBuffer->records[i];
+                // Insertion will find new page in which to allocate record
+                insertRecord(tableInfo, spaceMap, updateRecord, RELATION);
+                freeRecord(updateRecord);
+            }
+
+            recordBuffer->size = 0;
+        }
+
         canContinue = iterateRecords(tableInfo, &iterator, true);
     }
 

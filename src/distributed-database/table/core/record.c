@@ -338,8 +338,9 @@ void outputRecord(Record record) {
 
 void removeRecord(Page page, RecordSlot *slot, size_t recordSize) {
     slot->size = 0;
+    slot->offset = 0;
     slot->modified = true;
     page->header->modified = true;
-    page->header->freeSpace += recordSize + SLOT_SIZE;
+    page->header->freeSpace += recordSize;
     page->header->numRecords--;
 }
