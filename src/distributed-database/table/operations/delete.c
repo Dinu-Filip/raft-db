@@ -1,5 +1,3 @@
-#include <stdlib.h>
-
 #include "../conditions.h"
 #include "../core/pages.h"
 #include "../core/record.h"
@@ -23,7 +21,7 @@ void deleteFrom(TableInfo table, TableInfo spaceMap, Schema *schema,
         canIterate = iterateRecords(table, &iterator, false);
 
         // Defragments records from deleted page only when page is left
-        if (record == NULL || iterator.page->pageId != oldPage->pageId) {
+        if (!canIterate || iterator.page->pageId != oldPage->pageId) {
             defragmentRecords(oldPage);
             updatePage(table, oldPage);
             freePage(oldPage);

@@ -1,4 +1,5 @@
 #include "test/operations/createTable.h"
+#include "test/operations/deleteMultiPage.h"
 #include "test/operations/insertAllAttributesMultiPage.h"
 #include "test/operations/insertAllAttributesSinglePage.h"
 #include "test/operations/selectAttrSubset.h"
@@ -14,5 +15,5 @@
 int main() {
     testCreateTableOperation();
     testInsertAllAttributesMultiPage();
-    testUpdateVarAttributes();
+    testDeleteMultiPage();
 }
