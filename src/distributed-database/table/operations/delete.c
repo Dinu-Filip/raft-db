@@ -24,6 +24,7 @@ void deleteFrom(TableInfo table, TableInfo spaceMap, Schema *schema,
         if (!canIterate || iterator.page->pageId != oldPage->pageId) {
             defragmentRecords(oldPage);
             updatePage(table, oldPage);
+            updateSpaceInventory(spaceMap, oldPage);
             freePage(oldPage);
         }
     }

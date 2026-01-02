@@ -17,7 +17,7 @@ void displayTable(char *tableName) {
     snprintf(buffer, MAX_FILE_NAME_LEN, "%s-schema", tableName);
     TableInfo schemaInfo = openTable(buffer);
 
-    Schema *schema = getSchema(schemaInfo, tableName);
+    Schema *schema = getSchema(schemaInfo);
 
     struct RecordIterator iterator;
     initialiseRecordIterator(&iterator);
@@ -115,7 +115,7 @@ void extendedDisplayTable(char *tableName, TableType tableType) {
         snprintf(buffer, MAX_FILE_NAME_LEN, "%s-schema", tableName);
         schemaInfo = openTable(buffer);
 
-        schema = getSchema(schemaInfo, tableName);
+        schema = getSchema(schemaInfo);
     } else if (tableType == SCHEMA) {
         char buffer[MAX_FILE_NAME_LEN];
         snprintf(buffer, MAX_FILE_NAME_LEN, "%s-schema", tableName);

@@ -125,7 +125,7 @@ Schema getDictSchema() {
     return schema;
 }
 
-Schema *getSchema(TableInfo schemaInfo, char *tableName) {
+Schema *getSchema(TableInfo schemaInfo) {
     Schema *schema = malloc(sizeof(Schema));
     assert(schema != NULL);
 

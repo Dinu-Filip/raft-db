@@ -15,5 +15,5 @@
 int main() {
     testCreateTableOperation();
     testInsertAllAttributesMultiPage();
-    testDeleteMultiPage();
+    testUpdateVarAttributes();
 }

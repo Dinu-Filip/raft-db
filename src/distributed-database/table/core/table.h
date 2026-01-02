@@ -104,7 +104,7 @@ extern void updateTableHeader(TableInfo tableInfo);
  * @param spaceInventory space map
  * @param page page to update into space inventory
  */
-extern void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
+extern void updateSpaceInventory(TableInfo spaceInventory,
                                  Page page);
 
 /**

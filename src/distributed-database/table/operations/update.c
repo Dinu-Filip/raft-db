@@ -38,10 +38,10 @@ static void updateField(Field *field, Operand op) {
     }
 }
 
-static void updateRecord(TableInfo tableInfo,
-                         TableInfo spaceMap, Record record, Page page,
+static void updateRecord(Record record, Page page,
                          QueryAttributes queryAttributes,
-                         QueryValues queryValues, RecordIterator iterator, RecordArray buffer) {
+                         QueryValues queryValues, RecordIterator iterator,
+                         RecordArray buffer) {
     size_t oldSize = record->size;
     for (int j = 0; j < record->numValues; j++) {
         // Only updates fields specified in attributes list
@@ -75,17 +75,10 @@ static void updateRecord(TableInfo tableInfo,
             }
         }
     }
-    static int numRemoved = 0;
-    static int prevId = 0;
+
     if (record->size > oldSize) {
-        if (page->pageId != prevId) {
-            numRemoved = 0;
-            prevId = page->pageId;
-        }
         // Record cannot fit in old position so needs to be removed
         removeRecord(page, iterator->lastSlot, record->size);
-        numRemoved++;
-        assert(numRemoved + page->header->numRecords == page->header->slots.size);
         addRecord(buffer, record);
         return;
     }
@@ -110,12 +103,13 @@ void updateTable(TableInfo tableInfo, TableInfo spaceMap,
     RecordArray recordBuffer = createRecordArray();
 
     while (canContinue) {
-        Record record = parseRecord(iterator.page->ptr + iterator.lastSlot->offset, schema);
+        Record record =
+            parseRecord(iterator.page->ptr + iterator.lastSlot->offset, schema);
 
         // Updates record that satisfies condition
         if (evaluate(record, cond)) {
-            updateRecord(tableInfo, spaceMap, record, iterator.page,
-                         queryAttributes, queryValues, &iterator, recordBuffer);
+            updateRecord(record, iterator.page, queryAttributes, queryValues,
+                         &iterator, recordBuffer);
         }
 
         Page oldPage = iterator.page;
@@ -126,7 +120,7 @@ void updateTable(TableInfo tableInfo, TableInfo spaceMap,
 
             // Updates space inventory for page
             if (spaceMap != NULL) {
-                updateSpaceInventory(spaceMap->name, spaceMap, oldPage);
+                updateSpaceInventory(spaceMap, oldPage);
             }
 
             for (int i = 0; i < recordBuffer->size; i++) {

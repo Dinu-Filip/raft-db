@@ -31,7 +31,7 @@ QueryResult executeQualifiedOperation(Operation operation, TableType tableType) 
         char schemaName[100];
         snprintf(schemaName, sizeof(schemaName), "%s-schema", operation->tableName);
         TableInfo schemaInfo = openTable(schemaName);
-        schema = *getSchema(schemaInfo, operation->tableName);
+        schema = *getSchema(schemaInfo);
         closeTable(schemaInfo);
 
         char spaceName[100];

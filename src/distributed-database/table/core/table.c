@@ -111,7 +111,7 @@ void updateTableHeader(TableInfo tableInfo) {
     }
 }
 
-void updateSpaceInventory(char *tableName, TableInfo spaceInventory,
+void updateSpaceInventory(TableInfo spaceInventory,
                           Page page) {
     int id = page->pageId;
     int freeSpace = page->header->freeSpace;

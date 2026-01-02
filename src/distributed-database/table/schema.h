@@ -32,7 +32,7 @@ struct Schema {
  * @param schemaInfo schema table
  * @param tableName name of relation table
  */
-extern Schema *getSchema(TableInfo schemaInfo, char *tableName);
+extern Schema *getSchema(TableInfo schemaInfo);
 
 /**
  * Initialises schema for relation schema

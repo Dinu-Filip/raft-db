@@ -58,7 +58,7 @@ void insertRecord(TableInfo tableInfo, TableInfo spaceMap, Record record, TableT
 
     if (type == RELATION) {
         // Updates free space in page if table is a relation
-        updateSpaceInventory(tableInfo->name, spaceMap, page);
+        updateSpaceInventory(spaceMap, page);
     }
 
     freePage(page);
