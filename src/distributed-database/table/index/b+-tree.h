@@ -6,10 +6,14 @@
 
 typedef struct Index *Index;
 
-extern void createBIndex(size_t typeWidth, AttributeName attribute);
+extern void createBIndex(size_t typeWidth, AttributeName attribute, AttributeType type);
 
 extern Index openIndex(AttributeName attribute);
 
 extern void closeIndex(Index index);
+
+unsigned getD(Index index);
+unsigned getKeySize(Index index);
+unsigned getRootId(Index index);
 
 #endif //B_TREE_H

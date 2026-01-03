@@ -1,3 +1,4 @@
+#include "test/index/createAndOpenIndex.h"
 #include "test/operations/createTable.h"
 #include "test/operations/deleteMultiPage.h"
 #include "test/operations/insertAllAttributesMultiPage.h"
@@ -13,7 +14,5 @@
 #include "test/table/iterateRecordsMultiplePages.h"
 
 int main() {
-    testCreateTableOperation();
-    testInsertAllAttributesMultiPage();
-    testUpdateVarAttributes();
+    testCreateAndOpenIndex();
 }
