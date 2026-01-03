@@ -5,7 +5,7 @@
 
 #include "b+-tree.h"
 
-#define INIT_ROOT_ID 1
+#define INIT_ROOT_ID 0
 
 #define ROOT_ID_WIDTH sizeof(uint16_t)
 #define D_WIDTH sizeof(uint16_t)
@@ -41,21 +41,6 @@ struct Index {
     int (*cmp)(const void *, const void *);
 };
 
-typedef struct Node *Node;
-struct Node {
-    uint8_t *ptr;
-    bool headerModified;
-    bool nodeModified;
-    uint16_t id;
-    AttributeType keyType;
-    NodeType type;
-    uint16_t parent;
-    uint16_t numKeys;
-    uint16_t prev;
-    uint16_t next;
-    uint16_t leafDirectoryId;
-};
-
 typedef struct InsertArgs InsertArgs;
 struct InsertArgs {
     union {
@@ -70,8 +55,8 @@ struct InsertArgs {
 static void splitNode(Index index, Node node);
 
 static int intcmp(void *x, void *y) {
-    if (x < y) return -1;
-    if (x > y) return 1;
+    if (*(int *)x < *(int *)y) return -1;
+    if (*(int *)x > *(int *)y) return 1;
     return 0;
 }
 
@@ -149,6 +134,10 @@ Index openIndex(AttributeName attribute) {
 }
 
 void closeIndex(Index index) {
+    if (index->modified) {
+        fseek(index->file, 0, SEEK_SET);
+        fwrite(&index->rootId, ROOT_ID_WIDTH, 1, index->file);
+    }
     fclose(index->file);
     free(index);
 }
@@ -196,8 +185,9 @@ Node getNode(Index index, uint16_t id) {
     uint8_t *ptr = malloc(sizeof(uint8_t) * _PAGE_SIZE);
     assert(ptr != NULL);
 
-    fread(ptr, _PAGE_SIZE * sizeof(uint8_t), 1, index->file);
+    fread(ptr, _PAGE_SIZE, 1, index->file);
 
+    node->id = id;
     node->ptr = ptr;
     getNodeHeader(node);
 
@@ -207,7 +197,7 @@ Node getNode(Index index, uint16_t id) {
 Node addNode(Index index, NodeType type, uint16_t parent, uint16_t prev,
              uint16_t next) {
     Node node = getNode(index, ++index->numPages);
-
+    index->modified = true;
     node->parent = parent;
     node->type = type;
     node->prev = prev;
@@ -223,6 +213,7 @@ void closeNode(Index index, Node node) {
     fseek(index->file, node->id * _PAGE_SIZE, SEEK_SET);
 
     if (node->headerModified) {
+        updateNodeHeader(node);
         fwrite(node->ptr, sizeof(uint8_t), NODE_HEADER_WIDTH, index->file);
     }
     if (node->nodeModified) {
@@ -270,6 +261,10 @@ unsigned getKeyChild(Index index, Node node, unsigned idx) {
 }
 
 unsigned searchKey(Index index, Node node, void *key) {
+    if (node->numKeys == 0) {
+        return 0;
+    }
+
     unsigned left = 0;
     unsigned right = node->numKeys - 1;
 
@@ -279,17 +274,17 @@ unsigned searchKey(Index index, Node node, void *key) {
         uint8_t curr[index->keySize];
         getInternalKey(index, node, mid, curr);
 
-        switch (index->cmp(curr, key) == 0) {
+        switch (index->cmp(key, curr)) {
             case 0:
                 return mid;
             case 1:
-                left = mid + 1;
+                left = mid + 1; break;
             default:
-                right = mid - 1;
+                right = mid - 1; break;
         }
     }
 
-    return right - 1;
+    return left;
 }
 
 Node moveToNode(Index index, Node node, void *key) {
@@ -317,6 +312,9 @@ void orderedKeyInsertInternal(Index index, Node node, void *key,
     unsigned destIdx = searchKey(index, node, key);
 
     node->numKeys++;
+    node->headerModified = true;
+    node->nodeModified = true;
+
     setKeyChild(index, node, node->numKeys,
                 getKeyChild(index, node, node->numKeys - 1));
 
@@ -336,6 +334,8 @@ void orderedKeyInsertLeaf(Index index, Node node, void *key, unsigned offset) {
     unsigned destIdx = searchKey(index, node, key);
 
     node->numKeys++;
+    node->headerModified = true;
+    node->nodeModified = true;
 
     for (int i = node->numKeys - 1; i > destIdx; i--) {
         uint8_t curr[index->keySize];
@@ -344,6 +344,7 @@ void orderedKeyInsertLeaf(Index index, Node node, void *key, unsigned offset) {
         setKeyChild(index, node, i, getKeyChild(index, node, i - 1));
     }
 
+    setInternalKey(index, node, destIdx, key);
     setKeyChild(index, node, destIdx, offset);
 }
 
