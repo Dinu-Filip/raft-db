@@ -12,6 +12,7 @@
 
 #include "b+-tree.h"
 
+typedef struct Index *Index;
 struct Index {
     FILE *file;
     uint16_t rootId;
@@ -52,4 +53,34 @@ void createBIndex(size_t typeWidth, AttributeName attribute) {
     initialiseBIndex(index, typeWidth);
 
     fclose(index);
+}
+
+static void readIndexHeader(Index index) {
+    fseek(index->file, 0, SEEK_SET);
+
+    fread(&index->rootId, ROOT_ID_WIDTH, 1, index->file);
+    fread(&index->d, D_WIDTH, 1, index->file);
+    fread(&index->keySize, KEY_SIZE_WIDTH, 1, index->file);
+}
+
+Index openIndex(AttributeName attribute) {
+    char indexFile[MAX_FILE_NAME_LEN];
+    snprintf(indexFile, sizeof(indexFile), "%s/%s-index.%s", DB_BASE_DIRECTORY, attribute, DB_EXTENSION);
+
+    FILE *file = fopen(indexFile, "wb+");
+    assert(file != NULL);
+
+    Index index = malloc(sizeof(struct Index));
+    assert(index != NULL);
+
+    index->file = file;
+
+    readIndexHeader(index);
+
+    return index;
+}
+
+void closeIndex(Index index) {
+    fclose(index->file);
+    free(index);
 }
