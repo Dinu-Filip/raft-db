@@ -5,14 +5,16 @@
 #include "test-library.h"
 
 void testInsertToRootUnordered() {
-    createBIndex(4, "code", ID_KEY);
+    createBIndex(8, "code", INT_KEY);
     Index index = openIndex("code");
 
     for (int i = 0; i < 100; i += 2) {
-        addKeyToIndex(index, &i, 30 + i);
+        KeyId id = {.secKey = {.key = &i, .id = 50 + i}};
+        addKeyToIndex(index, &id, 30 + i);
     }
     for (int i = 1; i < 100; i += 2) {
-        addKeyToIndex(index, &i, 30 + i);
+        KeyId id = {.secKey = {.key = &i, .id = 50 + i}};
+        addKeyToIndex(index, &id, 30 + i);
     }
 
     closeIndex(index);
@@ -26,11 +28,13 @@ void testInsertToRootUnordered() {
     ASSERT_EQ(node->type, LEAF)
     ASSERT_EQ(node->parent, 0)
     ASSERT_EQ(node->keyType, INT)
+
     for (int i = 0; i < 100; i++) {
-        int32_t x;
-        getInternalKey(index, node, i, &x);
+        KeyId id;
+        getInternalKey(index, node, i, &id);
         unsigned offset = getKeyChild(index, node, i);
-        ASSERT_EQ(x, i);
+        ASSERT_EQ(*(int *)id.secKey.key, i);
+        ASSERT_EQ(id.secKey.id, 50 + i)
         ASSERT_EQ(offset, 30 + i)
     }
     FINISH_OUTER_TEST

@@ -1,6 +1,5 @@
 #ifndef B_TREE_H
 #define B_TREE_H
-#include <stddef.h>
 
 #include "table/schema.h"
 
@@ -14,14 +13,18 @@ typedef enum {
 
 typedef struct KeyId KeyId;
 struct KeyId {
-    void *key;
-    uint32_t id;
+    union {
+        uint32_t priKey;
+        struct {
+            void *key;
+            uint32_t id;
+        } secKey;
+    };
 };
 
-typedef enum {
-    INTERNAL,
-    LEAF
-} NodeType;
+typedef struct StrKeyId StrKeyId;
+
+typedef enum { INTERNAL, LEAF } NodeType;
 
 typedef struct Node *Node;
 struct Node {
@@ -38,7 +41,8 @@ struct Node {
     uint16_t leafDirectoryId;
 };
 
-extern void createBIndex(size_t typeWidth, AttributeName attribute, KeyType type);
+extern void createBIndex(size_t typeWidth, AttributeName attribute,
+                         KeyType type);
 
 extern Index openIndex(AttributeName attribute);
 
@@ -50,10 +54,11 @@ unsigned getRootId(Index index);
 unsigned getNumPages(Index index);
 
 Node getNode(Index index, uint16_t id);
+void closeNode(Index index, Node node);
 
 uint16_t getNodeId(Node node);
-void getInternalKey(Index index, Node node, unsigned idx, void *dest);
+void getInternalKey(Index index, Node node, unsigned idx, KeyId *dest);
 unsigned getKeyChild(Index index, Node node, unsigned idx);
-void addKeyToIndex(Index index, void *key, unsigned offset);
+void addKeyToIndex(Index index, KeyId *key, unsigned offset);
 
-#endif //B_TREE_H
+#endif  // B_TREE_H

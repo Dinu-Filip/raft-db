@@ -11,6 +11,7 @@
 #define D_WIDTH sizeof(uint16_t)
 #define KEY_SIZE_WIDTH sizeof(uint16_t)
 #define CMP_TYPE_WIDTH sizeof(uint8_t)
+#define NUM_PAGES_WIDTH sizeof(uint16_t)
 
 #define NODE_ID_WIDTH sizeof(uint16_t)
 #define NODE_PARENT_WIDTH sizeof(uint16_t)
@@ -23,12 +24,14 @@
 #define RID_OFFSET_WIDTH sizeof(uint16_t)
 
 #define TABLE_HEADER_WIDTH \
-    (ROOT_ID_WIDTH + D_WIDTH + KEY_SIZE_WIDTH + CMP_TYPE_WIDTH)
+    (ROOT_ID_WIDTH + NUM_PAGES_WIDTH + D_WIDTH + KEY_SIZE_WIDTH + CMP_TYPE_WIDTH)
 #define NODE_HEADER_WIDTH \
     (NODE_PREV_WIDTH + NODE_NEXT_WIDTH + NODE_NUM_KEYS_WIDTH + NODE_TYPE_WIDTH)
 
 #define KEY_START NODE_HEADER_WIDTH
 #define CHILDREN_START(keySize, d) (KEY_START + keySize * 2 * d)
+
+#define max(x, y) ((x > y) ? x : y)
 
 typedef struct Index *Index;
 struct Index {
@@ -63,10 +66,10 @@ static int intcmp(void *x, void *y) {
 static int strKeyCmp(void *x, void *y) {
     KeyId *k1 = x;
     KeyId *k2 = y;
-    int cmp = strcmp(k1->key, k2->key);
+    int cmp = strcmp(k1->secKey.key, k2->secKey.key);
 
     if (cmp == 0) {
-        return intcmp(&k1->id, &k2->id);
+        return intcmp(&k1->secKey.id, &k2->secKey.id);
     }
 
     return cmp;
@@ -75,9 +78,12 @@ static int strKeyCmp(void *x, void *y) {
 static int intKeyCmp(void *x, void *y) {
     KeyId *k1 = x;
     KeyId *k2 = y;
-    int cmp = intcmp(k1->key, k2->key);
+    int i1, i2;
+    memcpy(&i1, k1->secKey.key, sizeof(int32_t));
+    memcpy(&i2, k2->secKey.key, sizeof(int32_t));
+    int cmp = intcmp(&i1, &i2);
     if (cmp == 0) {
-        return intcmp(&k1->id, &k2->id);
+        return intcmp(&k1->secKey.id, &k2->secKey.id);
     }
     return cmp;
 }
@@ -88,8 +94,10 @@ static void initialiseBIndex(FILE *index, size_t typeWidth,
 
     uint16_t rootID = INIT_ROOT_ID;
     fwrite(&rootID, sizeof(rootID), 1, index);
+    uint16_t numPages = 0;
+    fwrite(&numPages, sizeof(numPages), 1, index);
 
-    unsigned m = (_PAGE_SIZE - NODE_HEADER_WIDTH - NODE_ID_WIDTH) /
+    unsigned m = (_PAGE_SIZE - max(NODE_HEADER_WIDTH, TABLE_HEADER_WIDTH) - NODE_ID_WIDTH) /
                  (typeWidth + NODE_ID_WIDTH);
     unsigned d = ceil(m / 2.0);
 
@@ -118,6 +126,7 @@ static void readIndexHeader(Index index) {
     fseek(index->file, 0, SEEK_SET);
 
     fread(&index->rootId, ROOT_ID_WIDTH, 1, index->file);
+    fread(&index->numPages, NUM_PAGES_WIDTH, 1, index->file);
     fread(&index->d, D_WIDTH, 1, index->file);
     fread(&index->keySize, KEY_SIZE_WIDTH, 1, index->file);
 
@@ -161,6 +170,7 @@ void closeIndex(Index index) {
     if (index->modified) {
         fseek(index->file, 0, SEEK_SET);
         fwrite(&index->rootId, ROOT_ID_WIDTH, 1, index->file);
+        fwrite(&index->numPages, NUM_PAGES_WIDTH, 1, index->file);
     }
     fclose(index->file);
     free(index);
@@ -249,18 +259,29 @@ void closeNode(Index index, Node node) {
     free(node);
 }
 
-void getInternalKey(Index index, Node node, unsigned idx, void *dest) {
+void getInternalKey(Index index, Node node, unsigned idx, KeyId *key) {
     assert(idx < node->numKeys);
 
     unsigned size = index->keySize;
-    memcpy(dest, node->ptr + KEY_START + size * idx, size);
+    if (node->keyType == ID_KEY) {
+        memcpy(&key->priKey, node->ptr + KEY_START + size * idx, size);
+    } else {
+        key->secKey.key = node->ptr + KEY_START + size * idx;
+        memcpy(&key->secKey.id, node->ptr + KEY_START + size * idx + size - GLOBAL_ID_WIDTH, GLOBAL_ID_WIDTH);
+    }
+
 }
 
-void setInternalKey(Index index, Node node, unsigned idx, void *src) {
+void setInternalKey(Index index, Node node, unsigned idx, KeyId *src) {
     assert(idx < node->numKeys);
 
     unsigned size = index->keySize;
-    memcpy(node->ptr + KEY_START + size * idx, src, size);
+    if (node->keyType == ID_KEY) {
+        memcpy(node->ptr + KEY_START + size * idx, src, size);
+    } else {
+        memcpy(node->ptr + KEY_START + size * idx, src->secKey.key, size - GLOBAL_ID_WIDTH);
+        memcpy(node->ptr + KEY_START + size * idx + size - GLOBAL_ID_WIDTH, &src->secKey.id, GLOBAL_ID_WIDTH);
+    }
 
     node->nodeModified = true;
 }
@@ -286,7 +307,6 @@ unsigned getKeyChild(Index index, Node node, unsigned idx) {
         assert(idx <= node->numKeys);
     }
 
-
     memcpy(&res,
            node->ptr + CHILDREN_START(index->keySize, index->d) +
                NODE_ID_WIDTH * idx,
@@ -294,7 +314,7 @@ unsigned getKeyChild(Index index, Node node, unsigned idx) {
     return res;
 }
 
-unsigned searchKey(Index index, Node node, void *key) {
+unsigned searchKey(Index index, Node node, KeyId *key) {
     if (node->numKeys == 0) {
         return 0;
     }
@@ -305,10 +325,10 @@ unsigned searchKey(Index index, Node node, void *key) {
     while (left <= right) {
         unsigned mid = (left + right) / 2;
 
-        uint8_t curr[index->keySize];
-        getInternalKey(index, node, mid, curr);
+        KeyId keyId;
+        getInternalKey(index, node, mid, &keyId);
 
-        switch (index->cmp(key, curr)) {
+        switch (index->cmp(key, &keyId)) {
             case 0:
                 return mid;
             case 1:
@@ -321,26 +341,26 @@ unsigned searchKey(Index index, Node node, void *key) {
     return left;
 }
 
-Node moveToNode(Index index, Node node, void *key) {
+Node moveToNode(Index index, Node node, KeyId *keyId) {
     assert(node->type != LEAF);
 
-    unsigned leqKey = searchKey(index, node, key);
+    unsigned leqKey = searchKey(index, node, keyId);
     unsigned nextId = getKeyChild(index, node, leqKey < node->numKeys ? leqKey + 1 : leqKey);
     closeNode(index, node);
     return getNode(index, nextId);
 }
 
-Node traverseTo(Index index, void *key) {
+Node traverseTo(Index index, KeyId *keyId) {
     Node curr = getNode(index, index->rootId);
 
     while (curr->type != LEAF) {
-        curr = moveToNode(index, curr, key);
+        curr = moveToNode(index, curr, keyId);
     }
 
     return curr;
 }
 
-void orderedKeyInsertInternal(Index index, Node node, void *key,
+void orderedKeyInsertInternal(Index index, Node node, KeyId *key,
                               unsigned leftId, unsigned rightId) {
     assert(node->numKeys < index->d * 2 - 1);
     unsigned destIdx = searchKey(index, node, key);
@@ -353,9 +373,9 @@ void orderedKeyInsertInternal(Index index, Node node, void *key,
                 getKeyChild(index, node, node->numKeys - 1));
 
     for (int i = node->numKeys - 1; i > destIdx; i--) {
-        uint8_t curr[index->keySize];
-        getInternalKey(index, node, i - 1, curr);
-        setInternalKey(index, node, i, curr);
+        KeyId keyId;
+        getInternalKey(index, node, i - 1, &keyId);
+        setInternalKey(index, node, i, &keyId);
         setKeyChild(index, node, i, getKeyChild(index, node, i - 1));
     }
 
@@ -364,7 +384,7 @@ void orderedKeyInsertInternal(Index index, Node node, void *key,
     setKeyChild(index, node, destIdx + 1, rightId);
 }
 
-void orderedKeyInsertLeaf(Index index, Node node, void *key, unsigned offset) {
+void orderedKeyInsertLeaf(Index index, Node node, KeyId *key, unsigned offset) {
     unsigned destIdx = searchKey(index, node, key);
 
     node->numKeys++;
@@ -372,9 +392,9 @@ void orderedKeyInsertLeaf(Index index, Node node, void *key, unsigned offset) {
     node->nodeModified = true;
 
     for (int i = node->numKeys - 1; i > destIdx; i--) {
-        uint8_t curr[index->keySize];
-        getInternalKey(index, node, i - 1, curr);
-        setInternalKey(index, node, i, curr);
+        KeyId keyId;
+        getInternalKey(index, node, i - 1, &keyId);
+        setInternalKey(index, node, i, &keyId);
         setKeyChild(index, node, i, getKeyChild(index, node, i - 1));
     }
 
@@ -382,7 +402,7 @@ void orderedKeyInsertLeaf(Index index, Node node, void *key, unsigned offset) {
     setKeyChild(index, node, destIdx, offset);
 }
 
-void insertKey(Index index, Node node, void *key, InsertArgs args) {
+void insertKey(Index index, Node node, KeyId *key, InsertArgs args) {
     if (node->numKeys >= index->d * 2 - 1) {
         splitNode(index, node);
     }
@@ -402,10 +422,10 @@ static void splitNode(Index index, Node node) {
 
     unsigned d = index->d;
     for (unsigned i = d; i < d * 2 - 1; i++) {
-        uint8_t curr[index->keySize];
-        getInternalKey(index, node, i, curr);
+        KeyId keyId;
+        getInternalKey(index, node, i, &keyId);
         nextNode->numKeys++;
-        setInternalKey(index, nextNode, i - d, curr);
+        setInternalKey(index, nextNode, i - d, &keyId);
         setKeyChild(index, nextNode, i - d,
                     getKeyChild(index, node, i));
     }
@@ -417,8 +437,8 @@ static void splitNode(Index index, Node node) {
     node->numKeys = d;
     uint16_t parent = node->parent;
 
-    uint8_t key[index->keySize];
-    getInternalKey(index, node, node->numKeys - 1, key);
+    KeyId keyId;
+    getInternalKey(index, node, node->numKeys - 1, &keyId);
 
     if (node->type != LEAF) {
         node->numKeys--;
@@ -429,18 +449,24 @@ static void splitNode(Index index, Node node) {
         parentNode = getNode(index, parent);
     } else {
         parentNode = addNode(index, INTERNAL, 0, 0, 0);
+        nextNode->parent = parentNode->id;
+        node->parent = parentNode->id;
         index->rootId = parentNode->id;
+
+        node->headerModified = true;
+        nextNode->headerModified = true;
         index->modified = true;
     }
 
     InsertArgs args = {
         .children = {.leftId = node->id, .rightId = nextNode->id}};
+    insertKey(index, parentNode, &keyId, args);
     closeNode(index, nextNode);
-    insertKey(index, parentNode, key, args);
+
     closeNode(index, parentNode);
 }
 
-void addKeyToIndex(Index index, void *key, unsigned offset) {
+void addKeyToIndex(Index index, KeyId *key, unsigned offset) {
     Node leaf;
     if (index->rootId == 0) {
         Node root = addNode(index, LEAF, 0, 0, 0);

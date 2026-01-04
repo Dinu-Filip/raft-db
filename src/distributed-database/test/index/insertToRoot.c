@@ -6,11 +6,12 @@
 #include "test-library.h"
 
 void testInsertToRoot() {
-    createBIndex(4, "code", ID_KEY);
+    createBIndex(4 + GLOBAL_ID_WIDTH, "code", INT_KEY);
     Index index = openIndex("code");
 
     for (int i = 0; i < 100; i++) {
-        addKeyToIndex(index, &i, 30 + i);
+        KeyId key = {.secKey = {.key = &i, .id = 30 + i}};
+        addKeyToIndex(index, &key, 50 + i);
     }
 
     closeIndex(index);
@@ -24,11 +25,12 @@ void testInsertToRoot() {
     ASSERT_EQ(node->parent, 0)
     ASSERT_EQ(node->keyType, INT)
     for (int i = 0; i < 100; i++) {
-        int32_t x;
-        getInternalKey(index, node, i, &x);
+        KeyId keyId;
+        getInternalKey(index, node, i, &keyId);
         unsigned offset = getKeyChild(index, node, i);
-        ASSERT_EQ(x, i);
-        ASSERT_EQ(offset, 30 + i)
+        ASSERT_EQ(*(int *)keyId.secKey.key, i);
+        ASSERT_EQ(keyId.secKey.id, 30 + i);
+        ASSERT_EQ(offset, 50 + i)
     }
     FINISH_OUTER_TEST
     PRINT_SUMMARY
