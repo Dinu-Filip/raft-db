@@ -7,6 +7,18 @@
 typedef struct Index *Index;
 
 typedef enum {
+    INT_KEY,
+    STR_KEY,
+    ID_KEY,
+} KeyType;
+
+typedef struct KeyId KeyId;
+struct KeyId {
+    void *key;
+    uint32_t id;
+};
+
+typedef enum {
     INTERNAL,
     LEAF
 } NodeType;
@@ -26,7 +38,7 @@ struct Node {
     uint16_t leafDirectoryId;
 };
 
-extern void createBIndex(size_t typeWidth, AttributeName attribute, AttributeType type);
+extern void createBIndex(size_t typeWidth, AttributeName attribute, KeyType type);
 
 extern Index openIndex(AttributeName attribute);
 

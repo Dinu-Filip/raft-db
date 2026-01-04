@@ -4,7 +4,7 @@
 #include "test-library.h"
 
 void testInsertWithOverflow() {
-    createBIndex(4, "code", INT);
+    createBIndex(4, "code", ID_KEY);
     Index index = openIndex("code");
 
     for (int i = 0; i < 700; i++) {

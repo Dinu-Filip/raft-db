@@ -6,7 +6,7 @@
 #include "test-library.h"
 
 void testInsertToRoot() {
-    createBIndex(4, "code", INT);
+    createBIndex(4, "code", ID_KEY);
     Index index = openIndex("code");
 
     for (int i = 0; i < 100; i++) {
@@ -15,7 +15,6 @@ void testInsertToRoot() {
 
     closeIndex(index);
     index = openIndex("code");
-
 
     START_OUTER_TEST("Test insertion in order into the root")
     assert(index != 0);

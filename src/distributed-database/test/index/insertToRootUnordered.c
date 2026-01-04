@@ -5,7 +5,7 @@
 #include "test-library.h"
 
 void testInsertToRootUnordered() {
-    createBIndex(4, "code", INT);
+    createBIndex(4, "code", ID_KEY);
     Index index = openIndex("code");
 
     for (int i = 0; i < 100; i += 2) {

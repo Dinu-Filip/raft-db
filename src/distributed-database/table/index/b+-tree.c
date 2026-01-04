@@ -60,8 +60,30 @@ static int intcmp(void *x, void *y) {
     return 0;
 }
 
+static int strKeyCmp(void *x, void *y) {
+    KeyId *k1 = x;
+    KeyId *k2 = y;
+    int cmp = strcmp(k1->key, k2->key);
+
+    if (cmp == 0) {
+        return intcmp(&k1->id, &k2->id);
+    }
+
+    return cmp;
+}
+
+static int intKeyCmp(void *x, void *y) {
+    KeyId *k1 = x;
+    KeyId *k2 = y;
+    int cmp = intcmp(k1->key, k2->key);
+    if (cmp == 0) {
+        return intcmp(&k1->id, &k2->id);
+    }
+    return cmp;
+}
+
 static void initialiseBIndex(FILE *index, size_t typeWidth,
-                             AttributeType type) {
+                             KeyType type) {
     fseek(index, 0, SEEK_SET);
 
     uint16_t rootID = INIT_ROOT_ID;
@@ -79,7 +101,7 @@ static void initialiseBIndex(FILE *index, size_t typeWidth,
 }
 
 void createBIndex(size_t typeWidth, AttributeName attribute,
-                  AttributeType type) {
+                  KeyType type) {
     char indexFile[MAX_FILE_NAME_LEN];
     snprintf(indexFile, sizeof(indexFile), "%s/%s-index.idx", DB_BASE_DIRECTORY,
              attribute);
@@ -99,16 +121,18 @@ static void readIndexHeader(Index index) {
     fread(&index->d, D_WIDTH, 1, index->file);
     fread(&index->keySize, KEY_SIZE_WIDTH, 1, index->file);
 
-    AttributeType cmpType;
+    KeyType cmpType;
     fread(&cmpType, KEY_SIZE_WIDTH, 1, index->file);
 
     switch (cmpType) {
-        case INT:
-            index->cmp = intcmp;
+        case INT_KEY:
+            index->cmp = intKeyCmp;
             break;
-        case VARSTR:
-        case STR:
-            index->cmp = strcmp;
+        case STR_KEY:
+            index->cmp = strKeyCmp;
+            break;
+        case ID_KEY:
+            index->cmp = intcmp;
             break;
         default:
             exit(-1);
