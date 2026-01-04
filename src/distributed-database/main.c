@@ -1,7 +1,6 @@
-#include "test/index/createAndOpenIndex.h"
-#include "test/index/insertToRoot.h"
-#include "test/sql/createTable.h"
+#include "test/index/insertToRootUnordered.h"
+#include "test/index/insertWithOverflow.h"
 
 int main() {
-    testInsertToRoot();
+    testInsertWithOverflow();
 }

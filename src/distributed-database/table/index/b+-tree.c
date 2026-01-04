@@ -242,7 +242,12 @@ void setInternalKey(Index index, Node node, unsigned idx, void *src) {
 }
 
 void setKeyChild(Index index, Node node, unsigned idx, unsigned id) {
-    assert(idx < node->numKeys);
+    if (node->type == LEAF) {
+        assert(idx < node->numKeys);
+    } else {
+        assert(idx <= node->numKeys);
+    }
+
     memcpy(node->ptr + CHILDREN_START(index->keySize, index->d) +
                NODE_ID_WIDTH * idx,
            &id, NODE_ID_WIDTH);
@@ -251,7 +256,12 @@ void setKeyChild(Index index, Node node, unsigned idx, unsigned id) {
 
 unsigned getKeyChild(Index index, Node node, unsigned idx) {
     unsigned res;
-    assert(idx < node->numKeys);
+    if (node->type == LEAF) {
+        assert(idx < node->numKeys);
+    } else {
+        assert(idx <= node->numKeys);
+    }
+
 
     memcpy(&res,
            node->ptr + CHILDREN_START(index->keySize, index->d) +
@@ -291,7 +301,7 @@ Node moveToNode(Index index, Node node, void *key) {
     assert(node->type != LEAF);
 
     unsigned leqKey = searchKey(index, node, key);
-    unsigned nextId = getKeyChild(index, node, leqKey + 1);
+    unsigned nextId = getKeyChild(index, node, leqKey < node->numKeys ? leqKey + 1 : leqKey);
     closeNode(index, node);
     return getNode(index, nextId);
 }
@@ -367,18 +377,20 @@ static void splitNode(Index index, Node node) {
     node->next = nextNode->id;
 
     unsigned d = index->d;
-    for (unsigned i = d; i < d * 2; i++) {
+    for (unsigned i = d; i < d * 2 - 1; i++) {
         uint8_t curr[index->keySize];
-        getInternalKey(index, nextNode, i, curr);
-        setInternalKey(index, nextNode, i - d - 1, curr);
-        setKeyChild(index, nextNode, i - d - 1,
-                    getKeyChild(index, nextNode, i));
+        getInternalKey(index, node, i, curr);
+        nextNode->numKeys++;
+        setInternalKey(index, nextNode, i - d, curr);
         setKeyChild(index, nextNode, i - d,
-                    getKeyChild(index, nextNode, i + 1));
+                    getKeyChild(index, node, i));
+    }
+
+    if (node->type == INTERNAL) {
+        setKeyChild(index, nextNode, d, getKeyChild(index, node, d * 2 - 1));
     }
 
     node->numKeys = d;
-    nextNode->numKeys = d - 1;
     uint16_t parent = node->parent;
 
     uint8_t key[index->keySize];
@@ -388,17 +400,18 @@ static void splitNode(Index index, Node node) {
         node->numKeys--;
     }
 
-    closeNode(index, nextNode);
-
     Node parentNode;
     if (parent != 0) {
         parentNode = getNode(index, parent);
     } else {
         parentNode = addNode(index, INTERNAL, 0, 0, 0);
+        index->rootId = parentNode->id;
+        index->modified = true;
     }
 
     InsertArgs args = {
         .children = {.leftId = node->id, .rightId = nextNode->id}};
+    closeNode(index, nextNode);
     insertKey(index, parentNode, key, args);
     closeNode(index, parentNode);
 }
