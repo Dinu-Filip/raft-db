@@ -15,7 +15,12 @@ bitmap_t initBitmap(size_t size) {
     bitmap_t bitmap = malloc(sizeof(struct bitmap));
     assert(bitmap != NULL);
 
+    word_t *bits = malloc(sizeof(word_t) * (size / sizeof(word_t) + 1));
+    assert(bits != NULL);
+
     bitmap->size = size;
+    bitmap->bits = bits;
+
     return bitmap;
 }
 
