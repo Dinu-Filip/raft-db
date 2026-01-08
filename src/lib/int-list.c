@@ -68,7 +68,11 @@ void intListRemove(IntList l, size_t index) {
     l->length--;
 }
 
-void intListPop(IntList l) { intListRemove(l, l->length - 1); }
+int intListPop(IntList l) {
+    int last = intListGet(l, l->length - 1);
+    intListRemove(l, l->length - 1);
+    return last;
+}
 
 void intListSet(IntList l, size_t index, int value) {
     resize(l, index);

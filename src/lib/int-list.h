@@ -11,7 +11,7 @@ extern void freeIntList(IntList l);
 extern void intListInsert(IntList l, size_t index, int value);
 extern void intListPush(IntList l, int value);
 extern void intListRemove(IntList l, size_t index);
-extern void intListPop(IntList l);
+extern int intListPop(IntList l);
 extern void intListSet(IntList l, size_t index, int value);
 extern int intListGet(IntList l, size_t index);
 extern size_t intListLength(IntList l);
