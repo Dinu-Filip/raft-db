@@ -15,7 +15,6 @@
 #define NUM_PAGES 1000
 #define BUFFER_SIZE (_PAGE_SIZE * NUM_PAGES)
 
-typedef struct Frame Frame;
 struct Frame {
     bool dirty;
     bool loaded;
@@ -54,11 +53,11 @@ Buffer initialiseBuffer() {
 }
 
 
-static incUsage(Frame *frame) {
+static void incUsage(Frame *frame) {
     frame->cnt = frame->cnt == MAX_COUNT ? MAX_COUNT : frame->cnt + 1;
 }
 
-static decUsage(Frame *frame) {
+static void decUsage(Frame *frame) {
     frame->cnt = frame->cnt == 0 ? 0 : frame->cnt - 1;
 }
 
@@ -69,6 +68,10 @@ static void evict(Buffer buffer) {
         curr->cnt--;
         decUsage(curr);
         curr = &buffer->frames[buffer->id];
+    }
+
+    if (curr->dirty) {
+        pwrite(curr->file, curr->ptr, _PAGE_SIZE, _PAGE_SIZE * buffer->id);
     }
 
     intListPush(buffer->freeList, buffer->id);
@@ -116,6 +119,7 @@ void pgset(Frame *frame, uint16_t offset, void *src, size_t size) {
     if (!frame->loaded) {
         loadFilePage(frame);
     }
+
     memcpy(frame->ptr + offset, src, size);
     frame->dirty = true;
     incUsage(frame);
