@@ -1,0 +1,4 @@
+.run/
+results/
+notebooks/.venv/
+notebooks/.ipynb_checkpoints/
