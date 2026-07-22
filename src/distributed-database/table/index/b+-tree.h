@@ -32,7 +32,7 @@ struct Node {
     bool headerModified;
     bool nodeModified;
     uint16_t id;
-    AttributeType keyType;
+    KeyType keyType;
     NodeType type;
     uint16_t parent;
     uint16_t numKeys;

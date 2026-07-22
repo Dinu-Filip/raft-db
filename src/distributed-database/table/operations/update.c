@@ -90,6 +90,10 @@ static void updateRecord(Record record, Page page,
     if (record->size < oldSize) {
         iterator->lastSlot->size = record->size;
     }
+
+    // The record->size > oldSize case returns early above with ownership
+    // transferred to buffer; this path owns record and is done with it.
+    freeRecord(record);
 }
 
 void updateTable(TableInfo tableInfo, TableInfo spaceMap,
@@ -110,6 +114,9 @@ void updateTable(TableInfo tableInfo, TableInfo spaceMap,
         if (evaluate(record, cond)) {
             updateRecord(record, iterator.page, queryAttributes, queryValues,
                          &iterator, recordBuffer);
+        } else {
+            // updateRecord frees record when called; this is the other path.
+            freeRecord(record);
         }
 
         Page oldPage = iterator.page;

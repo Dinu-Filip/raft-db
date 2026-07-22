@@ -106,4 +106,10 @@ extern void setVotedFor(int votedFor);
  */
 extern int getLeaderId(void);
 
+/**
+ * Register a callback invoked (without the raft node lock held) whenever
+ * setCommitIndex advances the commit index. Pass NULL to clear.
+ */
+extern void setCommitIndexListener(void (*listener)(void));
+
 #endif  // RAFT_NODE_H

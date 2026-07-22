@@ -9,9 +9,7 @@
 #include "../schema.h"
 #include "log.h"
 #include "record.h"
-#include "recordArray.h"
 #include "table/operations/operation.h"
-#include "table/operations/select.h"
 #include "table/operations/sqlToOperation.h"
 
 #define INITIAL_NUM_SLOTS 10
@@ -216,15 +214,35 @@ void updatePageHeaderInsert(Record record, Page page, uint16_t recordStart) {
     page->header->freeSpace -= SLOT_SIZE;
 }
 
-QueryResult getFreeSpaces(TableInfo spaceInfo, size_t recordSize) {
-    char template[] = "select * from %s where FREE_SPACE >= %d;";
-    char sql[300];
-    // Assumes in the worst case that a new slot needs to be added to the end
-    snprintf(sql, sizeof(sql), template, spaceInfo->name, recordSize + SLOT_SIZE);
+// Returns the id of the first page in the space inventory with enough free
+// space, or -1 if none found. Stops at the first match instead of collecting
+// every match, since the caller only needs one.
+static int findPageWithSpace(TableInfo spaceInfo, size_t recordSize) {
+    struct RecordIterator iterator;
+    initialiseRecordIterator(&iterator);
     Schema spaceSchema = getInventorySchema();
-    QueryResult res = selectOperation(spaceInfo, &spaceSchema, sqlToOperation(sql));
 
-    return res;
+    int foundPageId = -1;
+    bool canContinue = iterateRecords(spaceInfo, &iterator, true);
+    while (canContinue) {
+        Record record = parseRecord(
+            iterator.page->ptr + iterator.lastSlot->offset, &spaceSchema);
+
+        // Compares free space including slot width, matching the worst case
+        // of a new slot needing to be added to the end
+        if (record->fields[SPACE_FREE_SPACE_IDX].intValue >=
+            recordSize + SLOT_SIZE) {
+            foundPageId = record->fields[SPACE_ID_IDX].intValue;
+            freeRecord(record);
+            break;
+        }
+
+        freeRecord(record);
+        canContinue = iterateRecords(spaceInfo, &iterator, true);
+    }
+
+    freeRecordIterator(&iterator);
+    return foundPageId;
 }
 
 static void insertFreeSpace(TableInfo spaceInfo, Page page) {
@@ -237,7 +255,9 @@ static void insertFreeSpace(TableInfo spaceInfo, Page page) {
     char sql[100];
     snprintf(sql, sizeof(sql), template, spaceInfo->name, id, freeSpace);
     Schema spaceSchema = getInventorySchema();
-    insertOperation(spaceInfo, NULL, &spaceSchema, sqlToOperation(sql), FREE_MAP);
+    Operation operation = sqlToOperation(sql);
+    insertOperation(spaceInfo, NULL, &spaceSchema, operation, FREE_MAP);
+    freeOperation(operation);
 }
 
 Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
@@ -251,30 +271,21 @@ Page nextFreePage(TableInfo tableInfo, TableInfo spaceInfo, size_t recordSize,
                 recordSize + OFFSET_WIDTH + SIZE_WIDTH) {
                 return page;
             }
+
+            freePage(page);
         }
 
         // Adds page if no pages found
         return addPage(tableInfo);
     }
 
-    // Gets all pages with sufficient free space from the space inventory
-    QueryResult spaceMapRes = getFreeSpaces(spaceInfo, recordSize);
+    int pageId = findPageWithSpace(spaceInfo, recordSize);
 
-    if (spaceMapRes->records->size == 0) {
+    if (pageId == -1) {
         Page page = addPage(tableInfo);
-
         insertFreeSpace(spaceInfo, page);
-        freeRecordArray(spaceMapRes->records);
-        free(spaceMapRes);
         return page;
     }
-
-    // Returns first page with sufficient space
-    size_t pageId =
-        spaceMapRes->records->records[0]->fields[SPACE_ID_IDX].intValue;
-
-    freeRecordArray(spaceMapRes->records);
-    free(spaceMapRes);
 
     return getPage(tableInfo, pageId);
 }
@@ -315,8 +326,10 @@ void defragmentRecords(Page page) {
 
         // Calculates expected offset of record from end of page
         recordStart -= slot->size;
+        // Counted for every record, even ones that don't move below
+        freeSpace -= slot->size;
 
-        // Skips if record already in correct position
+        // Skips the move if record already in correct position
         if (slot->offset == recordStart) {
             continue;
         }
@@ -325,9 +338,7 @@ void defragmentRecords(Page page) {
         memmove(page->ptr + recordStart, page->ptr + slot->offset,
                 sizeof(uint8_t) * slot->size);
 
-        slot->modified = true;
         slot->offset = recordStart;
-        freeSpace -= slot->size;
     }
 
     // Adds recovered space

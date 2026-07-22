@@ -41,6 +41,7 @@ struct Index {
     uint16_t numPages;
     uint16_t d;
     uint16_t keySize;
+    KeyType type;
     int (*cmp)(const void *, const void *);
 };
 
@@ -130,8 +131,11 @@ static void readIndexHeader(Index index) {
     fread(&index->d, D_WIDTH, 1, index->file);
     fread(&index->keySize, KEY_SIZE_WIDTH, 1, index->file);
 
-    KeyType cmpType;
-    fread(&cmpType, KEY_SIZE_WIDTH, 1, index->file);
+    // Matches the CMP_TYPE_WIDTH (1 byte) createBIndex writes this field
+    // with; zero-initialised since that's narrower than KeyType itself.
+    KeyType cmpType = 0;
+    fread(&cmpType, CMP_TYPE_WIDTH, 1, index->file);
+    index->type = cmpType;
 
     switch (cmpType) {
         case INT_KEY:
@@ -189,7 +193,12 @@ void getNodeHeader(Node node) {
     node->nodeModified = false;
 
     memcpy(&node->numKeys, node->ptr, NODE_NUM_KEYS_WIDTH);
-    memcpy(&node->type, node->ptr + NODE_NUM_KEYS_WIDTH, NODE_TYPE_WIDTH);
+    // NodeType is an int-sized enum but only NODE_TYPE_WIDTH (2) bytes are
+    // stored on disk, so memcpy straight into node->type would leave its
+    // upper bytes as uninitialised garbage from getNode's malloc.
+    uint16_t type;
+    memcpy(&type, node->ptr + NODE_NUM_KEYS_WIDTH, NODE_TYPE_WIDTH);
+    node->type = type;
     memcpy(&node->prev, node->ptr + NODE_NUM_KEYS_WIDTH + NODE_TYPE_WIDTH,
            NODE_PREV_WIDTH);
     memcpy(&node->next,
@@ -223,6 +232,7 @@ Node getNode(Index index, uint16_t id) {
 
     node->id = id;
     node->ptr = ptr;
+    node->keyType = index->type;
     getNodeHeader(node);
 
     return node;

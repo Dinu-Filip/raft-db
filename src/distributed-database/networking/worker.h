@@ -5,34 +5,25 @@
 #include "networking/rpc.h"
 
 /**
- * Initialise the worker to send and execute messages
- */
-extern void initialiseWorker();
-
-/**
- * Queue a message to be sent from the main thread
+ * Queue a message to be sent to this node from its own worker thread
  * @param node the node to send the message to
  * @param msg the message to send
  */
 extern void queueSend(NetworkNode node, Msg msg);
 
 /**
- * Queue a message to be sent to all nodes from the main thread
- * @param msg the message to send
- */
-extern void queueSendAll(Msg msg);
-
-/**
- * Queue a message to be executed on the main thread
+ * Queue a message, received from this node, to be executed on its own
+ * worker thread
+ * @param node the node that sent the message
  * @param msg the message to execute
- * @param senderId the id of the node that send the message
  */
-extern void queueExecute(Msg msg, int senderId);
+extern void queueExecute(NetworkNode node, Msg msg);
 
 /**
- * Run the worker to send and execute messages, blocks the thread that it is run
- * in
+ * pthread entry point for a peer's worker thread: drains that node's queue,
+ * sending/executing jobs as they arrive. Blocks the thread it is run in.
+ * @param arg the NetworkNode whose queue this thread drains
  */
-extern void runWorker();
+extern void *runNodeWorker(void *arg);
 
 #endif  // WORKER_H

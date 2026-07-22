@@ -13,6 +13,12 @@
 #define TO_STR(x) #x
 
 RaftNode node;
+static void (*commitIndexListener)(void) = NULL;
+
+void setCommitIndexListener(void (*listener)(void)) {
+    commitIndexListener = listener;
+}
+
 void initRaftNode(int id, int numNodes) {
     initFilePaths(id);
     node = malloc(sizeof(struct RaftNode));
@@ -83,15 +89,16 @@ void setLeaderId(int leaderId) {
 void setCommitIndex(int newCommitIndex) {
     acquireRaftNodeLock();
     // COMMIT INDICES MUST ONLY INCREASE
-    if (newCommitIndex < node->commitIndex) {
-        LOG("Try to set commitIndex: %d which is lower than own commitIndex "
-            "of: %d. Returning early",
-            newCommitIndex, node->commitIndex);
+    if (newCommitIndex <= node->commitIndex) {
+        if (newCommitIndex < node->commitIndex) {
+            LOG("Try to set commitIndex: %d which is lower than own "
+                "commitIndex of: %d. Returning early",
+                newCommitIndex, node->commitIndex);
+        }
         releaseRaftNodeLock();
         return;
     }
-    if (newCommitIndex > node->commitIndex)
-        LOG("INCREASE COMMIT INDEX TO %d", newCommitIndex);
+    LOG("INCREASE COMMIT INDEX TO %d", newCommitIndex);
     for (int i = node->commitIndex + 1; i <= newCommitIndex; i++) {
         LOG("EXECUTING Operation at index %d", i);
         executeOperation(logTableGet(node->log, i)->operation);
@@ -100,6 +107,8 @@ void setCommitIndex(int newCommitIndex) {
     node->commitIndex = newCommitIndex;
     storeCommitIndex(newCommitIndex);
     releaseRaftNodeLock();
+    // Fired outside the lock so the listener can't stall other lock waiters.
+    if (commitIndexListener != NULL) commitIndexListener();
 }
 
 void setCurrentTerm(int currentTerm) {

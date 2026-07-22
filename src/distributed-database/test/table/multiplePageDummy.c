@@ -20,7 +20,7 @@ static void addRecord(Page page, int id) {
 
     record.fields = fields;
     record.numValues = 7;
-    record.size = RECORD_HEADER_WIDTH + SLOT_SIZE * 2 + GLOBAL_ID_WIDTH + INT_WIDTH + INT_WIDTH + FLOAT_WIDTH + BOOL_WIDTH + INT_WIDTH + 25 + 4;
+    record.size = RECORD_HEADER_WIDTH + OFFSET_WIDTH * 3 + GLOBAL_ID_WIDTH + INT_WIDTH + INT_WIDTH + FLOAT_WIDTH + BOOL_WIDTH + INT_WIDTH + 25 + 4;
     record.globalIdx = 6;
 
     uint16_t startOffset = page->header->recordStart - record.size;

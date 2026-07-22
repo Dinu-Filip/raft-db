@@ -6,6 +6,10 @@
 #include "log-entry.h"
 #include "table/operations/operation.h"
 
+// Distinct from NULL_NODE_ID, which leaderId also holds when no leader is
+// known yet - lets handleClientRequest's caller tell the two cases apart.
+#define REQUEST_ACCEPTED (-2)
+
 /**
  * Handle the request for a vote from the sender node
  * @param senderId the sender node's id
@@ -42,10 +46,14 @@ extern void handleAppendEntriesResponse(int followerId, int prevLogIndex,
  * Handles a request from a client. Read operations can be handled by any node.
  * Write operations must be handled by the leader. If the operation given
  * is a write and the node is not the leader, it will return the leader id.
+ * If the node is the leader, outIndex/outTerm are set to the log index and
+ * term the entry was appended at, so the caller can wait for it to commit.
  * @param operation the client operation
- * @return the node that the request needs to be sent to or null node id if the
- * current node has handled the request
+ * @param outIndex set to the appended entry's log index if this node is leader
+ * @param outTerm set to the term the entry was appended in if this node is leader
+ * @return REQUEST_ACCEPTED if this node handled it as leader, otherwise the
+ * current known leader id, or NULL_NODE_ID if no leader is known yet
  */
-extern int handleClientRequest(Operation operation);
+extern int handleClientRequest(Operation operation, int *outIndex, int *outTerm);
 
 #endif  // RAFT_CALLBACKS_H

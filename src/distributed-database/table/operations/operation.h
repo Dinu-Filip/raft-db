@@ -128,4 +128,19 @@ extern QueryResult executeOperation(Operation operation);
  */
 extern bool isWriteOperation(Operation operation);
 
+/**
+ * Deep-frees an Operation and everything reachable from it (attributes,
+ * values, condition/operand trees, table name). Must NOT be called on an
+ * operation stored in a raft LogEntry - those are owned by the log for the
+ * node's lifetime, not by whoever executed them.
+ * @param operation the operation to free, safe to call with NULL
+ */
+extern void freeOperation(Operation operation);
+
+/**
+ * Deep-frees a QueryResult (its RecordArray and every Record in it).
+ * @param result the result to free, safe to call with NULL
+ */
+extern void freeQueryResult(QueryResult result);
+
 #endif  // OPERATION_H

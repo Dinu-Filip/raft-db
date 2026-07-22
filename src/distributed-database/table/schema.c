@@ -136,8 +136,9 @@ Schema *getSchema(TableInfo schemaInfo) {
     Schema dictSchema = getDictSchema();
 
     // Retrieves records from schema store for this table
-    QueryResult result =
-        selectOperation(schemaInfo, &dictSchema, sqlToOperation(sql));
+    Operation operation = sqlToOperation(sql);
+    QueryResult result = selectOperation(schemaInfo, &dictSchema, operation);
+    freeOperation(operation);
 
     unsigned numRecords = result->records->size;
 

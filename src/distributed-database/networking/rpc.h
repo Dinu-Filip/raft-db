@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include "concurrent/queue.h"
 #include "networking/msg.h"
 
 typedef enum {
@@ -26,6 +27,10 @@ struct NetworkNode {
     pthread_mutex_t mutex;
     int connectionAttempts;
     time_t lastPing;
+    // Drained by this peer's own worker thread (worker.c's runNodeWorker),
+    // so peers proceed in parallel while preserving per-peer ordering.
+    ConcurrentQueue queue;
+    pthread_t workerThread;
 };
 
 /**

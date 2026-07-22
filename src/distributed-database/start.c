@@ -72,7 +72,6 @@ int start(int argc, char **argv) {
     signal(SIGINT, cleanUpServer);
 
     initRaftNode(nodeId, nodeCount);
-    initialiseWorker();
     initialiseRpc(nodeId, nodeCount);
     startClients(nAddrs, argv + 3);
     initDatabasePath(nodeId);
@@ -88,7 +87,8 @@ int start(int argc, char **argv) {
     pthread_t raftThread;
     pthread_create(&raftThread, NULL, runRaftMain, NULL);
 
-    runWorker();
+    // Blocks the main thread; all real work happens on the threads above.
+    pthread_join(raftThread, NULL);
 
     return EXIT_SUCCESS;
 }

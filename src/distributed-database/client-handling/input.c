@@ -111,62 +111,63 @@ static QueryValues parseQueryValues(cJSON *operationJson) {
 }
 
 static QueryTypes parseQueryTypes(cJSON *operationJson) {
+    QueryAttributes attributes = parseQueryAttributes(operationJson);
+    if (attributes == NULL) {
+        return NULL;
+    }
+
     cJSON *attributeTypes =
         cJSON_GetObjectItemCaseSensitive(operationJson, "types");
     cJSON *sizes = cJSON_GetObjectItemCaseSensitive(operationJson, "sizes");
 
-    QueryTypes queryTypes = malloc(sizeof(struct QueryTypes));
-    assert(queryTypes != NULL);
-
     int typesLength = getJsonArrayLength(attributeTypes);
-    queryTypes->numTypes = typesLength;
-    queryTypes->types = malloc(sizeof(AttributeType) * queryTypes->numTypes);
-    assert(queryTypes != NULL);
-
-    cJSON *element;
-    int i = 0;
-    cJSON_ArrayForEach(element, attributeTypes) {
-        if (!cJSON_IsString(element)) {
-            free(queryTypes->types);
-            free(queryTypes);
-            return NULL;
-        }
-
-        if (strcmp(element->valuestring, "INT") == 0) {
-            queryTypes->types[i] = INT;
-        } else if (strcmp(element->valuestring, "STR") == 0) {
-            queryTypes->types[i] = STR;
-        } else if (strcmp(element->valuestring, "VARSTR") == 0) {
-            queryTypes->types[i] = VARSTR;
-        } else if (strcmp(element->valuestring, "FLOAT") == 0) {
-            queryTypes->types[i] = FLOAT;
-        } else if (strcmp(element->valuestring, "BOOL") == 0) {
-            queryTypes->types[i] = BOOL;
-        } else {
-            LOG("Invalid type passed in for query type");
-            free(queryTypes->types);
-            free(queryTypes);
-            return NULL;
-        }
-
-        i++;
+    if (typesLength != attributes->numAttributes ||
+        typesLength != getJsonArrayLength(sizes)) {
+        return NULL;
     }
 
-    int sizesLength = getJsonArrayLength(sizes);
-    // queryTypes->numSizes = sizesLength;
-    // queryTypes->sizes = malloc(sizeof(size_t) * queryTypes->numSizes);
+    QueryTypes queryTypes = malloc(sizeof(struct QueryTypes));
+    assert(queryTypes != NULL);
+    queryTypes->numTypes = typesLength;
+    queryTypes->types = malloc(sizeof(QueryTypeDescriptor) * typesLength);
+    assert(queryTypes->types != NULL);
 
-    i = 0;
-    cJSON_ArrayForEach(element, sizes) {
-        if (!cJSON_IsNumber(element)) {
+    cJSON *typeElement = attributeTypes->child;
+    cJSON *sizeElement = sizes->child;
+    for (int i = 0; i < typesLength; i++) {
+        if (!cJSON_IsString(typeElement) || !cJSON_IsNumber(sizeElement)) {
             free(queryTypes->types);
             free(queryTypes);
             return NULL;
         }
 
-        // queryTypes->sizes[i] = element->valueint;
+        QueryTypeDescriptor descriptor =
+            malloc(sizeof(struct QueryTypeDescriptor));
+        assert(descriptor != NULL);
+        descriptor->name = strdup(attributes->attributes[i]);
+        descriptor->size = sizeElement->valueint;
 
-        i++;
+        if (strcmp(typeElement->valuestring, "INT") == 0) {
+            descriptor->type = INT;
+        } else if (strcmp(typeElement->valuestring, "STR") == 0) {
+            descriptor->type = STR;
+        } else if (strcmp(typeElement->valuestring, "VARSTR") == 0) {
+            descriptor->type = VARSTR;
+        } else if (strcmp(typeElement->valuestring, "FLOAT") == 0) {
+            descriptor->type = FLOAT;
+        } else if (strcmp(typeElement->valuestring, "BOOL") == 0) {
+            descriptor->type = BOOL;
+        } else {
+            LOG("Invalid type passed in for query type");
+            free(descriptor);
+            free(queryTypes->types);
+            free(queryTypes);
+            return NULL;
+        }
+
+        queryTypes->types[i] = descriptor;
+        typeElement = typeElement->next;
+        sizeElement = sizeElement->next;
     }
 
     return queryTypes;
@@ -483,5 +484,6 @@ char *queryResultStringify(QueryResult queryResult) {
 
     char *result = cJSON_Print(recordJsonArray);
     assert(result != NULL);
+    cJSON_Delete(recordJsonArray);
     return result;
 }

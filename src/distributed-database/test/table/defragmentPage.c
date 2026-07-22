@@ -76,3 +76,35 @@ void testDefragmentPage() {
     FINISH_OUTER_TEST
     PRINT_SUMMARY
 }
+
+// Regression test: freeSpace must account for every occupied record even
+// when none of them need to move (unlike testDefragmentPage above).
+void testDefragmentPackedPage() {
+    createSinglePageDummy();
+
+    TableInfo table = openTable("testdb");
+    Page page = getPage(table, 1);
+
+    unsigned numSlots = page->header->slots.size;
+    unsigned numRecords = page->header->numRecords;
+    unsigned recordSize = page->header->slots.slots[0].size;
+
+    defragmentRecords(page);
+    updatePage(table, page);
+
+    freePage(page);
+
+    START_OUTER_TEST("Test defragment a page with no records to move")
+
+    page = getPage(table, 1);
+
+    ASSERT_EQ(numSlots, numRecords);
+    ASSERT_EQ(page->header->freeSpace,
+              _PAGE_SIZE - 3 * NUM_SLOTS_WIDTH - numSlots * SLOT_SIZE - numRecords * recordSize);
+
+    FINISH_OUTER_TEST
+    PRINT_SUMMARY
+
+    freePage(page);
+    closeTable(table);
+}
