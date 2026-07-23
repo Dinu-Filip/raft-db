@@ -37,7 +37,7 @@ static void initialiseHeader(FILE *headerptr) {
 void initialiseTable(char *name) {
     char tableFile[MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN];
     snprintf(tableFile, MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN, "%s/%s.%s",
-             DB_BASE_DIRECTORY, name, DB_EXTENSION);
+             DB_DIRECTORY, name, DB_EXTENSION);
 
     FILE *table = fopen(tableFile, "wb+");
     assert(table != NULL);
@@ -55,7 +55,7 @@ void freeTable(TableInfo tableInfo) {
 TableInfo openTable(char *tableName) {
     char tableFile[MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN];
     snprintf(tableFile, MAX_FILE_NAME_LEN + MAX_TABLE_NAME_LEN, "%s/%s.%s",
-             DB_BASE_DIRECTORY, tableName, DB_EXTENSION);
+             DB_DIRECTORY, tableName, DB_EXTENSION);
 
     FILE *table = fopen(tableFile, "rb+");
     assert(table != NULL);
@@ -122,7 +122,9 @@ void updateSpaceInventory(TableInfo spaceInventory,
 
     snprintf(sql, sizeof(sql), template, spaceInventory->name, freeSpace, id);
     Schema spaceSchema = getInventorySchema();
-    updateOperation(spaceInventory, NULL, &spaceSchema, sqlToOperation(sql));
+    Operation operation = sqlToOperation(sql);
+    updateOperation(spaceInventory, NULL, &spaceSchema, operation);
+    freeOperation(operation);
 }
 
 void closeTable(TableInfo tableInfo) {

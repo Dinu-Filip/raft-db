@@ -36,13 +36,17 @@
 #define GLOBAL_ID_NAME "GLOBAL_IDX"
 #define GLOBAL_ID_RECORD_IDX 0
 
-#define DB_BASE_DIRECTORY "../../../raft-db"
+#define DB_BASE_DIRECTORY "raft-db"
 
 #define SLOT_SIZE (OFFSET_WIDTH + SIZE_WIDTH)
 
 #define SPACE_ID_IDX 0
 #define SPACE_NAME_IDX 1
 #define SPACE_FREE_IDX 2
+// SPACE_NAME_IDX/SPACE_FREE_IDX above don't match the current 2-attribute
+// {PAGE_ID, FREE_SPACE} inventory schema (schema.c's getInventorySchema);
+// this is the index that does.
+#define SPACE_FREE_SPACE_IDX 1
 
 extern char DB_DIRECTORY[MAX_FILE_NAME_LEN];
 

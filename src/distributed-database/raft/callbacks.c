@@ -150,6 +150,7 @@ void handleAppendEntriesResponse(int followerId, int prevLogIndex,
                                 intListGet(node->matchIndex, followerId));
         intListSet(node->matchIndex, followerId, newMatchIndex);
         intListSet(node->nextIndex, followerId, newMatchIndex + 1);
+        updateCommitIndex();
     } else {
         intListSet(node->nextIndex, followerId, MAX(prevLogIndex - 1, 0));
         runAppendEntries(followerId);
@@ -166,10 +167,12 @@ static void leaderHandleClientRequest(Operation operation) {
     sendAllAppendEntries();
 }
 
-int handleClientRequest(Operation operation) {
+int handleClientRequest(Operation operation, int *outIndex, int *outTerm) {
     acquireRaftNodeLock();
-    int res = NULL_NODE_ID;
+    int res = REQUEST_ACCEPTED;
     if (node->state == LEADER) {
+        *outIndex = logTableLength(node->log);
+        *outTerm = node->currentTerm;
         leaderHandleClientRequest(operation);
     } else {
         res = node->leaderId;

@@ -9,7 +9,7 @@
 void testInsertRecordsSinglePage() {
     createSinglePageDummy();
 
-    unsigned recordSize = RECORD_HEADER_WIDTH + SLOT_SIZE * 2 + GLOBAL_ID_WIDTH + INT_WIDTH + INT_WIDTH + FLOAT_WIDTH + BOOL_WIDTH + INT_WIDTH + 25 + 4;
+    unsigned recordSize = RECORD_HEADER_WIDTH + OFFSET_WIDTH * 3 + GLOBAL_ID_WIDTH + INT_WIDTH + INT_WIDTH + FLOAT_WIDTH + BOOL_WIDTH + INT_WIDTH + 25 + 4;
     TableInfo newInfo = openTable("testdb");
 
     START_OUTER_TEST("Test insertion of and iteration over records in a single page")

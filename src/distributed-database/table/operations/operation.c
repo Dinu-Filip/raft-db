@@ -26,12 +26,16 @@ QueryResult executeQualifiedOperation(Operation operation, TableType tableType) 
     TableInfo tableInfo = openTable(operation->tableName);
     Schema schema;
     TableInfo spaceInfo = NULL;
+    // Only set for RELATION - the other branches use static, shared Schemas
+    // that must never be freed.
+    Schema *heapSchema = NULL;
 
     if (tableType == RELATION) {
         char schemaName[100];
         snprintf(schemaName, sizeof(schemaName), "%s-schema", operation->tableName);
         TableInfo schemaInfo = openTable(schemaName);
-        schema = *getSchema(schemaInfo);
+        heapSchema = getSchema(schemaInfo);
+        schema = *heapSchema;
         closeTable(schemaInfo);
 
         char spaceName[100];
@@ -69,6 +73,12 @@ QueryResult executeQualifiedOperation(Operation operation, TableType tableType) 
     }
     closeTable(tableInfo);
 
+    // The switch above was the last user of schema.attrInfos, shared with
+    // heapSchema via the shallow copy above.
+    if (heapSchema != NULL) {
+        freeSchema(heapSchema);
+    }
+
     return res;
 }
 
@@ -86,4 +96,97 @@ void initDatabasePath(size_t nodeId) {
 
 bool isWriteOperation(Operation operation) {
     return operation->queryType != SELECT;
+}
+
+static void freeOperand(Operand operand) {
+    if (operand == NULL) return;
+    if (operand->type == STR || operand->type == ATTR) {
+        free(operand->value.strOp);
+    }
+    free(operand);
+}
+
+static void freeCondition(Condition condition) {
+    if (condition == NULL) return;
+
+    switch (condition->type) {
+        case NOT:
+            freeOperand(condition->value.oneArg.op1);
+            break;
+        case BETWEEN:
+            freeOperand(condition->value.between.op1);
+            freeOperand(condition->value.between.op2);
+            freeOperand(condition->value.between.op3);
+            break;
+        default:
+            // EQUALS/LESS_THAN/GREATER_THAN/LESS_EQUALS/GREATER_EQUALS/AND/OR
+            // all share the twoArg (op1, op2) layout
+            freeOperand(condition->value.twoArg.op1);
+            freeOperand(condition->value.twoArg.op2);
+            break;
+    }
+    free(condition);
+}
+
+static void freeQueryAttributes(QueryAttributes attributes) {
+    if (attributes == NULL) return;
+    for (int i = 0; i < attributes->numAttributes; i++) {
+        free(attributes->attributes[i]);
+    }
+    free(attributes->attributes);
+    free(attributes);
+}
+
+static void freeQueryValues(QueryValues values) {
+    if (values == NULL) return;
+    for (int i = 0; i < values->numValues; i++) {
+        freeOperand(values->values[i]);
+    }
+    free(values->values);
+    free(values);
+}
+
+static void freeQueryTypes(QueryTypes types) {
+    if (types == NULL) return;
+    for (int i = 0; i < types->numTypes; i++) {
+        free(types->types[i]->name);
+        free(types->types[i]);
+    }
+    free(types->types);
+    free(types);
+}
+
+void freeOperation(Operation operation) {
+    if (operation == NULL) return;
+
+    switch (operation->queryType) {
+        case SELECT:
+            freeQueryAttributes(operation->query.select.attributes);
+            freeCondition(operation->query.select.condition);
+            break;
+        case INSERT:
+            freeQueryAttributes(operation->query.insert.attributes);
+            freeQueryValues(operation->query.insert.values);
+            break;
+        case UPDATE:
+            freeQueryAttributes(operation->query.update.attributes);
+            freeQueryValues(operation->query.update.values);
+            freeCondition(operation->query.update.condition);
+            break;
+        case DELETE:
+            freeCondition(operation->query.delete.condition);
+            break;
+        case CREATE_TABLE:
+            freeQueryTypes(operation->query.createTable.types);
+            break;
+    }
+
+    free(operation->tableName);
+    free(operation);
+}
+
+void freeQueryResult(QueryResult result) {
+    if (result == NULL) return;
+    freeRecordArray(result->records);
+    free(result);
 }

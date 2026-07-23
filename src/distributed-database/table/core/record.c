@@ -324,7 +324,13 @@ bool iterateRecords(TableInfo tableInfo,
     return false;
 }
 
-void freeRecordIterator(RecordIterator iterator) {}
+// Frees the held page, if any - needed when a scan breaks early.
+void freeRecordIterator(RecordIterator iterator) {
+    if (iterator->page != NULL) {
+        freePage(iterator->page);
+        iterator->page = NULL;
+    }
+}
 
 void outputRecord(Record record) {
     for (int i = 0; i < record->numValues; i++) {

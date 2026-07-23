@@ -18,4 +18,10 @@ extern void *runRaftMain(void *arg);
  */
 extern void sendAllAppendEntries(void);
 
+/**
+ * Recompute the leader's commit index from matchIndex, advancing (and
+ * applying) it if a majority of the cluster now agrees on a higher index.
+ */
+extern void updateCommitIndex(void);
+
 #endif  // RAFT_MAIN_H

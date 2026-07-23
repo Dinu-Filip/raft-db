@@ -77,10 +77,15 @@ static bool isValidStrToken(const char *token) {
 static QueryAttributes parseSelectAttributes(char **cmd) {
     char *sql = *cmd;
 
-    QueryAttributes attrs = malloc(sizeof(QueryAttributes));
+    // QueryAttributes is a pointer typedef, so sizeof(QueryAttributes) would
+    // only be sizeof(a pointer)
+    QueryAttributes attrs = malloc(sizeof(struct QueryAttributes));
     assert(attrs != NULL);
 
     attrs->numAttributes = 0;
+    // freeOperation unconditionally frees this, so it must be defined even
+    // for the "*" wildcard case below where nothing ever iterates it
+    attrs->attributes = NULL;
 
     char *saveptr = NULL;
     char *token = strtok_r(sql, ", ", &saveptr);
@@ -641,6 +646,9 @@ static Operation createInsert(char *sql) {
             malloc(sizeof(struct QueryAttributes));
         assert(operation->query.insert.attributes != NULL);
         operation->query.insert.attributes->numAttributes = 0;
+        // Must be a defined value (nothing iterates it since numAttributes
+        // is 0, but freeOperation unconditionally frees it)
+        operation->query.insert.attributes->attributes = NULL;
     }
 
     if (!parseKeyword(&sql, VALUES)) {
@@ -745,6 +753,7 @@ static Operation createUpdate(char *sql) {
     }
 
     operation->tableName = tableName;
+    operation->query.update.condition = NULL;
 
     // Parses set keyword
     parseKeyword(&sql, SET);

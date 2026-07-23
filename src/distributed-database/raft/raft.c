@@ -47,7 +47,7 @@ void sendAllAppendEntries(void) {
     releaseRaftNodeLock();
 }
 
-static void updateCommitIndex(void) {
+void updateCommitIndex(void) {
     acquireRaftNodeLock();
     int l = -1;
     int r = 0;

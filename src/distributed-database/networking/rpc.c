@@ -58,6 +58,10 @@ void initialiseRpc(int id, int count) {
         node->connectionAttempts = 0;
         pthread_mutex_init(&node->mutex, NULL);
         time(&node->lastPing);
+
+        // Own queue/thread per peer so peers can't block behind each other.
+        node->queue = createConcurrentQueue();
+        pthread_create(&node->workerThread, NULL, runNodeWorker, node);
     }
 }
 
@@ -66,7 +70,20 @@ void nodeSend(int nodeId, Msg msg) {
     queueSend(node, msg);
 }
 
-void nodeSendAll(Msg msg) { queueSendAll(msg); }
+// Copies msg per peer so each queue owns (and frees) its own copy.
+void nodeSendAll(Msg msg) {
+    for (int i = 0; i < nodeCount; i++) {
+        if (i == selfId) continue;
+        NetworkNode node = getNode(i);
+
+        Msg copy = malloc(sizeof(struct Msg));
+        assert(copy != NULL);
+        *copy = *msg;
+
+        queueSend(node, copy);
+    }
+    free(msg);
+}
 
 static ssize_t writeBytes(NetworkNode node, uint8_t *buff, size_t bytesCount) {
     ssize_t totalBytesWritten = 0;
@@ -204,7 +221,7 @@ static void nodeListen(NetworkNode node) {
             }
             freeMsgShallow(msg);
         } else {
-            queueExecute(msg, node->id);
+            queueExecute(node, msg);
         }
     }
 

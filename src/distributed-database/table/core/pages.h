@@ -119,6 +119,4 @@ extern void getRecordSlot(RecordSlot *slot, uint8_t *idx);
  */
 extern void defragmentRecords(Page page);
 
-extern QueryResult getFreeSpaces(TableInfo spaceInfo, size_t recordSize);
-
 #endif  // PAGES_H
