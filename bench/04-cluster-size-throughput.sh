@@ -8,7 +8,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 
 CONCURRENCY="${1:-50}"
 OUT_CSV="$RESULTS_DIR/cluster-size-throughput.csv"
-echo -e "clusterSize\tconcurrency\trun\treqPerSec\tp50Ms\tp95Ms\tp99Ms" > "$OUT_CSV"
+echo -e "clusterSize\tconcurrency\trun\treqPerSec\tp50Ms\tp95Ms\tp99Ms\terrors" > "$OUT_CSV"
 
 for size in 3 5; do
     run_dir="$RUN_ROOT/clustersize-n$size"

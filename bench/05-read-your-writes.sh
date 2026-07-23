@@ -32,10 +32,34 @@ for ((run = 1; run <= REPEATS; run++)); do
 
     for ((i = 1; i <= ITERATIONS; i++)); do
         unique_id=$((run * 100000 + 10000 + i))
-        write_time=$(date +%s.%N)
-        curl -s -m5 -X POST "http://localhost:$leader_port/" \
-            -d "{\"queryType\":\"INSERT\",\"tableName\":\"bench\",\"attributes\":[],\"values\":[$unique_id,$i]}" \
-            > /dev/null
+
+        # leader_port/follower_port are resolved once per run above, but
+        # leadership can genuinely change mid-run (e.g. a node missing
+        # heartbeats under host load and triggering a real election) - if
+        # writes start failing against a now-stale leader_port they'd
+        # silently never replicate anywhere, and the follower poll below
+        # would then correctly never find them, inflating staleness to the
+        # full 5s timeout for every iteration for the rest of the run
+        # instead of measuring real replication lag. Detect that and
+        # re-resolve rather than trusting the cached port for the whole run.
+        write_resp=""
+        write_time=""
+        for attempt in 1 2 3; do
+            write_time=$(date +%s.%N)
+            write_resp=$(curl -s -m5 -X POST "http://localhost:$leader_port/" \
+                -d "{\"queryType\":\"INSERT\",\"tableName\":\"bench\",\"attributes\":[],\"values\":[$unique_id,$i]}")
+            [[ "$write_resp" == *'"success"'* ]] && break
+
+            echo "warning: write for id $unique_id failed ($write_resp), re-resolving leader" >&2
+            leader_id=$(wait_for_leader "$run_dir")
+            leader_port=$(awk -F'\t' -v id="$leader_id" '$1==id {print $3}' "$run_dir/manifest.tsv")
+            follower_port=$(follower_http_port "$run_dir")
+        done
+
+        if [[ "$write_resp" != *'"success"'* ]]; then
+            echo "error: write for id $unique_id failed after retries, skipping" >&2
+            continue
+        fi
 
         found=0
         attempts=0

@@ -140,7 +140,7 @@ follower_http_port() {
 
 # Runs wrk at each given concurrency against the leader, BENCH_REPEATS times
 # per concurrency (default 5, override via env), appending
-# "clusterSize<TAB>concurrency<TAB>run<TAB>reqPerSec<TAB>p50Ms<TAB>p95Ms<TAB>p99Ms"
+# "clusterSize<TAB>concurrency<TAB>run<TAB>reqPerSec<TAB>p50Ms<TAB>p95Ms<TAB>p99Ms<TAB>errors"
 # rows to out_csv - one row per (concurrency, run) pair, 1-indexed. Duration
 # per wrk invocation is BENCH_DURATION seconds (default 10). Repeats exist so
 # the notebooks can plot mean +/- stddev instead of a single noisy sample.
@@ -153,28 +153,39 @@ run_throughput_sweep() {
     local duration="${BENCH_DURATION:-10}"
     local repeats="${BENCH_REPEATS:-5}"
 
-    local leader_id
-    leader_id=$(wait_for_leader "$run_dir")
-    local port
-    port=$(awk -F'\t' -v id="$leader_id" '$1==id {print $3}' "$run_dir/manifest.tsv")
-
     for c in "${concurrencies[@]}"; do
         local threads=$c
         [ "$threads" -gt 8 ] && threads=8
 
         for ((r = 1; r <= repeats; r++)); do
+            # Leadership can genuinely change mid-sweep under sustained load
+            # (a busy leader misses heartbeats, a peer calls an election) -
+            # a stale port then hits a follower, which fast-rejects every
+            # write with a 200 OK error body. wrk still counts that as a
+            # completed request, so it reads as a throughput spike with
+            # suspiciously low latency instead of the failure it is. Re-resolve
+            # before every repeat instead of caching one port for the whole sweep.
+            local leader_id port
+            leader_id=$(wait_for_leader "$run_dir")
+            port=$(awk -F'\t' -v id="$leader_id" '$1==id {print $3}' "$run_dir/manifest.tsv")
+
             local out
             out=$(wrk -t"$threads" -c"$c" -d"${duration}s" --latency \
                 -s "$BENCH_DIR/lib/insert.lua" "http://localhost:$port/")
 
-            local reqs_per_sec p50 p95 p99
+            local reqs_per_sec p50 p95 p99 errors
             reqs_per_sec=$(echo "$out" | awk '/Requests\/sec:/ {print $2}')
             p50=$(echo "$out" | awk -F= '/P50_MS=/ {print $2}')
             p95=$(echo "$out" | awk -F= '/P95_MS=/ {print $2}')
             p99=$(echo "$out" | awk -F= '/P99_MS=/ {print $2}')
+            errors=$(echo "$out" | awk -F= '/ERRORS=/ {print $2}')
 
-            printf "%d\t%d\t%d\t%s\t%s\t%s\t%s\n" \
-                "$cluster_size" "$c" "$r" "$reqs_per_sec" "$p50" "$p95" "$p99" >> "$out_csv"
+            if [ "${errors:-0}" -gt 0 ]; then
+                echo "warning: clusterSize=$cluster_size concurrency=$c run=$r had $errors non-committed write(s) (stale leader / rejected / timed out) - reqPerSec for this row is inflated, treat it as unreliable" >&2
+            fi
+
+            printf "%d\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n" \
+                "$cluster_size" "$c" "$r" "$reqs_per_sec" "$p50" "$p95" "$p99" "${errors:-0}" >> "$out_csv"
         done
     done
 }
