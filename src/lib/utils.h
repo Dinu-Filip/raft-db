@@ -41,4 +41,12 @@ extern uint64_t getSign(uint64_t x, unsigned int sf);
  */
 extern uint64_t signExtend(uint64_t value, unsigned int size);
 
+/**
+ * @brief Read CLOCK_MONOTONIC as nanoseconds since an unspecified epoch.
+ * Only meaningful as a difference between two calls on the same process -
+ * never compare values read on different nodes.
+ * @return the current monotonic time in nanoseconds
+ */
+extern uint64_t monotonicNs(void);
+
 #endif  // UTILS_H

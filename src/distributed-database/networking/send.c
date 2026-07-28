@@ -31,24 +31,26 @@ void sendRequestVoteResponse(int candidateId, int term, bool voteGranted) {
 }
 
 void sendAppendEntries(int followerId, int term, int prevLogIndex,
-                       int prevLogTerm, int leaderCommit, int numEntries,
-                       LogEntry *entries) {
+                       int prevLogTerm, int leaderCommit, uint64_t sentAtNs,
+                       int numEntries, LogEntry *entries) {
     Msg msg = makeMsg(APPEND_ENTRIES);
     msg->data.appendEntries.term = term;
     msg->data.appendEntries.prevLogIndex = prevLogIndex;
     msg->data.appendEntries.prevLogTerm = prevLogTerm;
     msg->data.appendEntries.leaderCommit = leaderCommit;
+    msg->data.appendEntries.sentAtNs = sentAtNs;
     msg->data.appendEntries.numEntries = numEntries;
     msg->data.appendEntries.entries = entries;
     nodeSend(followerId, msg);
 }
 
 void sendAppendEntriesResponse(int leaderId, int prevLogIndex, int numEntries,
-                               int term, bool success) {
+                               int term, uint64_t sentAtNs, bool success) {
     Msg msg = makeMsg(APPEND_ENTRIES_RESPONSE);
     msg->data.appendEntriesResponse.prevLogIndex = prevLogIndex;
     msg->data.appendEntriesResponse.numEntries = numEntries;
     msg->data.appendEntriesResponse.term = term;
+    msg->data.appendEntriesResponse.sentAtNs = sentAtNs;
     msg->data.appendEntriesResponse.success = success;
     nodeSend(leaderId, msg);
 }

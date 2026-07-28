@@ -8,55 +8,55 @@
 #include "networking/execute.h"
 #include "networking/msg.h"
 #include "networking/rpc.h"
-
-typedef enum {
-    SEND,
-    EXECUTE,
-} JobType;
+#include "utils.h"
 
 typedef struct Job *Job;
 struct Job {
-    JobType type;
     NetworkNode node;
     Msg msg;
 };
 
-void queueSend(NetworkNode node, Msg msg) {
+static Job createJob(NetworkNode node, Msg msg) {
     Job job = malloc(sizeof(struct Job));
     assert(job != NULL);
 
-    job->type = SEND;
     job->node = node;
     job->msg = msg;
 
-    concurrentEnqueue(node->queue, job);
+    return job;
+}
+
+void queueSend(NetworkNode node, Msg msg) {
+    concurrentEnqueue(node->sendQueue, createJob(node, msg));
 }
 
 void queueExecute(NetworkNode node, Msg msg) {
-    Job job = malloc(sizeof(struct Job));
-    assert(job != NULL);
-
-    job->type = EXECUTE;
-    job->node = node;
-    job->msg = msg;
-
-    concurrentEnqueue(node->queue, job);
+    concurrentEnqueue(node->executeQueue, createJob(node, msg));
 }
 
-void *runNodeWorker(void *arg) {
+void *runSendWorker(void *arg) {
     NetworkNode node = (NetworkNode)arg;
 
     for (;;) {
-        Job job = concurrentDequeueWait(node->queue);
+        Job job = concurrentDequeueWait(node->sendQueue);
 
-        switch (job->type) {
-            case SEND:
-                sendMsg(job->node, job->msg);
-                break;
-            case EXECUTE:
-                execute(job->msg, job->node->id);
-                break;
-        }
+        sendMsg(job->node, job->msg);
+
+        freeMsgShallow(job->msg);
+        free(job);
+    }
+
+    return NULL;
+}
+
+void *runExecuteWorker(void *arg) {
+    NetworkNode node = (NetworkNode)arg;
+
+    for (;;) {
+        Job job = concurrentDequeueWait(node->executeQueue);
+        uint64_t dequeuedAtNs = monotonicNs();
+
+        execute(job->msg, job->node->id, dequeuedAtNs);
 
         freeMsgShallow(job->msg);
         free(job);

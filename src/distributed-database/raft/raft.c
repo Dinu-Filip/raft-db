@@ -17,7 +17,29 @@
 
 #define MAX_NUM_ENTRIES (1 << 8)
 
-#define MAIN_THREAD_SLEEP_US 5000
+// Was 5000 (5ms). Log entry propagation and commit-index advancement are
+// both already event-driven (sendAllAppendEntries is called directly from
+// leaderHandleClientRequest on every write, and updateCommitIndex from
+// handleAppendEntriesResponse on every majority-worthy response) - this tick
+// only still matters for two things: sending heartbeats to keep followers
+// from calling an election, and checking shouldCallElection(). Both only
+// need to run comfortably faster than RANDOM_ELECTION_TIME_MIN (150ms,
+// elections.c), so 5ms bought no correctness benefit here.
+//
+// It did cost real latency: every NetworkNode's outbound sends and inbound
+// responses share one FIFO job queue drained by one worker thread per peer
+// (networking/worker.c). At 5ms, the periodic heartbeat SEND job competes
+// with AppendEntriesResponse EXECUTE jobs on that same queue often enough to
+// produce a clearly bimodal round-trip latency: most RPCs land around
+// 400-500us, but a large fraction (27-42% of samples in an idle 3-vs-5-node
+// comparison) get stuck behind queued heartbeat traffic and land around
+// 5.5-5.8ms instead - see bench/06-rpc-latency.sh. That fraction, and the
+// tail it produces, shrank monotonically with this value in local testing
+// (5ms: p90 ~5.6ms; 10ms: p90 ~0.5ms, p99 ~1.5ms; 20ms: p90 ~0.6ms, p99
+// ~1ms) and 15ms was picked as the new value for the traditional ~10x
+// margin under the election timeout floor while cutting that self-inflicted
+// queueing contention.
+#define MAIN_THREAD_SLEEP_US 15000
 
 void runAppendEntries(int followerId) {
     acquireRaftNodeLock();
@@ -32,7 +54,7 @@ void runAppendEntries(int followerId) {
     int prevLogTerm =
         prevLogIndex == -1 ? 0 : logTableGet(node->log, prevLogIndex)->term;
     sendAppendEntries(followerId, node->currentTerm, prevLogIndex, prevLogTerm,
-                      node->commitIndex, numEntries, entries);
+                      node->commitIndex, monotonicNs(), numEntries, entries);
     releaseRaftNodeLock();
 }
 

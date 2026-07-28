@@ -5,7 +5,7 @@
 
 // Identify is handled directly by the network handler so can be ignored
 // here
-void execute(Msg msg, int senderId) {
+void execute(Msg msg, int senderId, uint64_t dequeuedAtNs) {
     switch (msg->type) {
         // Included to stop the compiler complaining
         case CLIENT_IDENTIFY:
@@ -29,6 +29,7 @@ void execute(Msg msg, int senderId) {
                                 msg->data.appendEntries.prevLogIndex,
                                 msg->data.appendEntries.prevLogTerm,
                                 msg->data.appendEntries.leaderCommit,
+                                msg->data.appendEntries.sentAtNs,
                                 msg->data.appendEntries.numEntries,
                                 msg->data.appendEntries.entries);
             break;
@@ -37,6 +38,7 @@ void execute(Msg msg, int senderId) {
                 senderId, msg->data.appendEntriesResponse.prevLogIndex,
                 msg->data.appendEntriesResponse.numEntries,
                 msg->data.appendEntriesResponse.term,
+                msg->data.appendEntriesResponse.sentAtNs, dequeuedAtNs,
                 msg->data.appendEntriesResponse.success);
             break;
     }

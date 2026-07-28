@@ -27,10 +27,18 @@ struct NetworkNode {
     pthread_mutex_t mutex;
     int connectionAttempts;
     time_t lastPing;
-    // Drained by this peer's own worker thread (worker.c's runNodeWorker),
-    // so peers proceed in parallel while preserving per-peer ordering.
-    ConcurrentQueue queue;
-    pthread_t workerThread;
+    // Separate queue/thread per direction, both still per-peer so peers
+    // proceed in parallel while preserving per-peer ordering within each
+    // direction. Split from a single shared queue+thread (see git history)
+    // because outbound heartbeat SEND jobs and inbound EXECUTE jobs (e.g.
+    // processing this peer's AppendEntriesResponse) queued head-to-head
+    // there, occasionally delaying response processing behind an unrelated
+    // outbound send - see bench/06-rpc-latency.sh and raft.c's
+    // MAIN_THREAD_SLEEP_US comment.
+    ConcurrentQueue sendQueue;
+    pthread_t sendWorkerThread;
+    ConcurrentQueue executeQueue;
+    pthread_t executeWorkerThread;
 };
 
 /**

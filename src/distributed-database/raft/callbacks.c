@@ -58,13 +58,13 @@ void handleRequestVoteResponse(int voterId, int term, bool voteGranted) {
 }
 
 void handleAppendEntries(int leaderId, int term, int prevLogIndex,
-                         int prevLogTerm, int leaderCommit, int numEntries,
-                         LogEntry *entries) {
+                         int prevLogTerm, int leaderCommit, uint64_t sentAtNs,
+                         int numEntries, LogEntry *entries) {
     acquireRaftNodeLock();
     checkTerm(term);
     if (term < node->currentTerm) {
         sendAppendEntriesResponse(leaderId, prevLogIndex, numEntries,
-                                  node->currentTerm, false);
+                                  node->currentTerm, sentAtNs, false);
         releaseRaftNodeLock();
         return;
     }
@@ -82,7 +82,7 @@ void handleAppendEntries(int leaderId, int term, int prevLogIndex,
     if (prevLogIndex > -1) {
         if (prevLogIndex >= logTableLength(node->log)) {
             sendAppendEntriesResponse(leaderId, prevLogIndex, numEntries,
-                                      node->currentTerm, false);
+                                      node->currentTerm, sentAtNs, false);
             releaseRaftNodeLock();
             return;
         }
@@ -90,7 +90,7 @@ void handleAppendEntries(int leaderId, int term, int prevLogIndex,
         if (!(ourPrevLogEntry != NULL &&
               ourPrevLogEntry->term == prevLogTerm)) {
             sendAppendEntriesResponse(leaderId, prevLogIndex, numEntries,
-                                      node->currentTerm, false);
+                                      node->currentTerm, sentAtNs, false);
             releaseRaftNodeLock();
             return;
         }
@@ -130,7 +130,7 @@ void handleAppendEntries(int leaderId, int term, int prevLogIndex,
     }
 
     sendAppendEntriesResponse(leaderId, prevLogIndex, numEntries,
-                              node->currentTerm, true);
+                              node->currentTerm, sentAtNs, true);
     if (numEntries > 0) {
         LOG("Finished successfully AppendEntries of non-zero entries");
     }
@@ -138,9 +138,22 @@ void handleAppendEntries(int leaderId, int term, int prevLogIndex,
 }
 
 void handleAppendEntriesResponse(int followerId, int prevLogIndex,
-                                 int numEntries, int term, bool success) {
+                                 int numEntries, int term, uint64_t sentAtNs,
+                                 uint64_t dequeuedAtNs, bool success) {
     acquireRaftNodeLock();
+    uint64_t lockedAtNs = monotonicNs();
     checkTerm(term);
+    // queueUs: time from send to being popped off this peer's job queue -
+    // network transit, follower-side processing/response, and this leader's
+    // own per-peer queue wait, all bundled together. lockWaitUs: time from
+    // dequeue to actually acquiring raftNodeLock here - isolates leader-side
+    // lock contention from everything upstream of it.
+    double latencyUs = (lockedAtNs - sentAtNs) / 1000.0;
+    double queueUs = (dequeuedAtNs - sentAtNs) / 1000.0;
+    double lockWaitUs = (lockedAtNs - dequeuedAtNs) / 1000.0;
+    LOG("RPC_LATENCY peer=%d rpc=append_entries numEntries=%d latencyUs=%.3f "
+        "queueUs=%.3f lockWaitUs=%.3f",
+        followerId, numEntries, latencyUs, queueUs, lockWaitUs);
     if (node->state != LEADER) {
         releaseRaftNodeLock();
         return;

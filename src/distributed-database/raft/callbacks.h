@@ -2,6 +2,7 @@
 #define RAFT_CALLBACKS_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "log-entry.h"
 #include "table/operations/operation.h"
@@ -31,16 +32,27 @@ extern void handleRequestVoteResponse(int voterId, int term, bool voteGranted);
 
 /**
  * Handle a request from the leader to append entries to the node's log
+ * @param sentAtNs the leader's monotonic clock reading at send time, echoed
+ * back unchanged in the response for RPC latency measurement
  */
 extern void handleAppendEntries(int leaderId, int term, int prevLogIndex,
                                 int prevLogTerm, int leaderCommit,
-                                int numEntries, LogEntry *entries);
+                                uint64_t sentAtNs, int numEntries,
+                                LogEntry *entries);
 
 /**
  * Handle a response from a follower node to append entries
+ * @param sentAtNs the sentAtNs value echoed back from the original request,
+ * used to log the round-trip RPC latency on the leader
+ * @param dequeuedAtNs monotonic time this response was popped off the
+ * follower's job queue, before this function's lock acquisition - used to
+ * split the logged RPC latency into queue/network time vs raft node lock
+ * wait time
  */
 extern void handleAppendEntriesResponse(int followerId, int prevLogIndex,
-                                        int numEntries, int term, bool success);
+                                        int numEntries, int term,
+                                        uint64_t sentAtNs,
+                                        uint64_t dequeuedAtNs, bool success);
 
 /**
  * Handles a request from a client. Read operations can be handled by any node.

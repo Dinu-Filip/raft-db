@@ -2,6 +2,7 @@
 #define SEND_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "raft/log-entry.h"
 
@@ -29,11 +30,14 @@ extern void sendRequestVoteResponse(int candidateId, int term,
  * @param prevLogIndex the previous log index
  * @param prevLogTerm the previous log term
  * @param leaderCommit
+ * @param sentAtNs the leader's monotonic clock reading at send time, echoed
+ * back in the response so it can measure RPC round-trip time
  * @param numEntries the number of entries
  * @param entries the array of entries
  */
 extern void sendAppendEntries(int followerId, int term, int prevLogIndex,
-                              int prevLogTerm, int leaderCommit, int numEntries,
+                              int prevLogTerm, int leaderCommit,
+                              uint64_t sentAtNs, int numEntries,
                               LogEntry *entries);
 
 /**
@@ -42,9 +46,12 @@ extern void sendAppendEntries(int followerId, int term, int prevLogIndex,
  * @param prevLogIndex the previous log index
  * @param numEntries the number of entries sent
  * @param term the current term
+ * @param sentAtNs the sentAtNs value from the request being responded to,
+ * echoed back unchanged
  * @param success indicates if the operation was successful
  */
 extern void sendAppendEntriesResponse(int leaderId, int prevLogIndex,
-                                      int numEntries, int term, bool success);
+                                      int numEntries, int term,
+                                      uint64_t sentAtNs, bool success);
 
 #endif  // SEND_H

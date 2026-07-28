@@ -20,10 +20,18 @@ extern void queueSend(NetworkNode node, Msg msg);
 extern void queueExecute(NetworkNode node, Msg msg);
 
 /**
- * pthread entry point for a peer's worker thread: drains that node's queue,
- * sending/executing jobs as they arrive. Blocks the thread it is run in.
- * @param arg the NetworkNode whose queue this thread drains
+ * pthread entry point for a peer's send worker thread: drains that node's
+ * sendQueue, sending jobs as they arrive. Blocks the thread it is run in.
+ * @param arg the NetworkNode whose sendQueue this thread drains
  */
-extern void *runNodeWorker(void *arg);
+extern void *runSendWorker(void *arg);
+
+/**
+ * pthread entry point for a peer's execute worker thread: drains that
+ * node's executeQueue, executing jobs as they arrive. Blocks the thread it
+ * is run in.
+ * @param arg the NetworkNode whose executeQueue this thread drains
+ */
+extern void *runExecuteWorker(void *arg);
 
 #endif  // WORKER_H

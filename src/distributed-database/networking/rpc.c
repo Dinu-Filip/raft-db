@@ -59,9 +59,13 @@ void initialiseRpc(int id, int count) {
         pthread_mutex_init(&node->mutex, NULL);
         time(&node->lastPing);
 
-        // Own queue/thread per peer so peers can't block behind each other.
-        node->queue = createConcurrentQueue();
-        pthread_create(&node->workerThread, NULL, runNodeWorker, node);
+        // Own send/execute queue+thread per peer, so peers can't block
+        // behind each other and, within a peer, outbound sends can't block
+        // behind inbound response processing or vice versa.
+        node->sendQueue = createConcurrentQueue();
+        pthread_create(&node->sendWorkerThread, NULL, runSendWorker, node);
+        node->executeQueue = createConcurrentQueue();
+        pthread_create(&node->executeWorkerThread, NULL, runExecuteWorker, node);
     }
 }
 

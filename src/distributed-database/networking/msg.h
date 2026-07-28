@@ -273,6 +273,7 @@ struct ReadBuff {
     PROC(appendEntries.prevLogIndex);                                   \
     PROC(appendEntries.prevLogTerm);                                    \
     PROC(appendEntries.leaderCommit);                                   \
+    PROC(appendEntries.sentAtNs);                                       \
     PROC(appendEntries.numEntries);                                     \
     MALLOC(LogEntry, appendEntries.entries, appendEntries.numEntries);  \
     for (int i = 0; i < appendEntries.numEntries; i++) {                \
@@ -285,6 +286,7 @@ struct ReadBuff {
     PROC(appendEntriesResponse.prevLogIndex);              \
     PROC(appendEntriesResponse.numEntries);                \
     PROC(appendEntriesResponse.term);                      \
+    PROC(appendEntriesResponse.sentAtNs);                  \
     PROC(appendEntriesResponse.success);
 
 #define MSG(PROC, PROCS, MALLOC, FREE, msg)                                 \
@@ -355,6 +357,10 @@ struct Msg {
             int prevLogIndex;
             int prevLogTerm;
             int leaderCommit;
+            // Leader's own monotonic clock reading at send time, echoed back
+            // unchanged in the response so the leader can measure RPC
+            // round-trip time without relying on clock sync across nodes.
+            uint64_t sentAtNs;
             int numEntries;
             LogEntry *entries;
         } appendEntries;
@@ -362,6 +368,7 @@ struct Msg {
             int prevLogIndex;
             int numEntries;
             int term;
+            uint64_t sentAtNs;
             bool success;
         } appendEntriesResponse;
     } data;

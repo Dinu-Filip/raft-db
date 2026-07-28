@@ -6,7 +6,7 @@
 
 #define BAR printf("=================================================\n")
 
-void execute(Msg msg, int senderId) {
+void execute(Msg msg, int senderId, uint64_t dequeuedAtNs) {
     BAR;
     printf("Message recieved from %d:\n", senderId);
     printMsg(msg);
