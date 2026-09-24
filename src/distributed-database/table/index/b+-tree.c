@@ -58,15 +58,15 @@ struct InsertArgs {
 
 static void splitNode(Index index, Node node);
 
-static int intcmp(void *x, void *y) {
-    if (*(int *)x < *(int *)y) return -1;
-    if (*(int *)x > *(int *)y) return 1;
+static int intcmp(const void *x, const void *y) {
+    if (*(const int *)x < *(const int *)y) return -1;
+    if (*(const int *)x > *(const int *)y) return 1;
     return 0;
 }
 
-static int strKeyCmp(void *x, void *y) {
-    KeyId *k1 = x;
-    KeyId *k2 = y;
+static int strKeyCmp(const void *x, const void *y) {
+    const KeyId *k1 = x;
+    const KeyId *k2 = y;
     int cmp = strcmp(k1->secKey.key, k2->secKey.key);
 
     if (cmp == 0) {
@@ -76,9 +76,9 @@ static int strKeyCmp(void *x, void *y) {
     return cmp;
 }
 
-static int intKeyCmp(void *x, void *y) {
-    KeyId *k1 = x;
-    KeyId *k2 = y;
+static int intKeyCmp(const void *x, const void *y) {
+    const KeyId *k1 = x;
+    const KeyId *k2 = y;
     int i1, i2;
     memcpy(&i1, k1->secKey.key, sizeof(int32_t));
     memcpy(&i2, k2->secKey.key, sizeof(int32_t));
@@ -489,4 +489,4 @@ void addKeyToIndex(Index index, KeyId *key, unsigned offset) {
     InsertArgs args = {.offset = offset};
     insertKey(index, leaf, key, args);
     closeNode(index, leaf);
-}
+}
