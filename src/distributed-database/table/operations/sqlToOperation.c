@@ -564,8 +564,10 @@ static Operation createSelect(char *sql) {
     return operation;
 }
 
+typedef void *(*ListParser)(char *token);
+
 static unsigned parseList(char *cmd, char *delims, void ***dest,
-                          void *(*func)(char *token)) {
+                          ListParser func) {
     unsigned size = 0;
 
     char *saveptr;
@@ -637,7 +639,8 @@ static Operation createInsert(char *sql) {
     if (hasAttributeList) {
         char *token = strtok_r(sql + 1, ")", &rest);
         AttributeName *names;
-        unsigned numAttrs = parseList(token, ", ", (void ***)&names, strdup);
+        unsigned numAttrs =
+            parseList(token, ", ", (void ***)&names, (ListParser)strdup);
         operation->query.insert.attributes =
             createUpdateQueryAttributes(names, numAttrs);
         sql = rest;
@@ -669,7 +672,8 @@ static Operation createInsert(char *sql) {
     // Parses list of values
     Operand *values;
     unsigned numValues =
-        parseList(token, ", ", (void ***)&values, getOperandFromList);
+        parseList(token, ", ", (void ***)&values,
+                  (ListParser)getOperandFromList);
     operation->query.insert.values = createUpdateQueryValues(values, numValues);
 
     return operation;
@@ -862,7 +866,8 @@ static Operation createCreateTable(char *sql) {
     assert(types != NULL);
 
     unsigned numTypes =
-        parseList(listStart, ",", (void ***)&types->types, getQueryType);
+        parseList(listStart, ",", (void ***)&types->types,
+                  (ListParser)getQueryType);
 
     if (types->types == NULL) {
         free(operation);

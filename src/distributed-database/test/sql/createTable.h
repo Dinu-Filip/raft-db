@@ -1,6 +1,6 @@
-#ifndef CREATETABLE_H
-#define CREATETABLE_H
+#ifndef SQL_CREATETABLE_H
+#define SQL_CREATETABLE_H
 
 void testCreateTable();
 
-#endif //CREATETABLE_H
+#endif //SQL_CREATETABLE_H

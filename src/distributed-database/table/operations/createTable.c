@@ -53,7 +53,7 @@ void createTable(Operation operation) {
     // Writes the schema of the table
     setSchema(operation->tableName, operation->query.createTable.types);
 
-    char *spaceTableName[MAX_FILE_NAME_LEN];
+    char spaceTableName[MAX_FILE_NAME_LEN];
     snprintf(spaceTableName, MAX_FILE_NAME_LEN, "%s-space-inventory",
              operation->tableName);
 

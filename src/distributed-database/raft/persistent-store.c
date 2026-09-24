@@ -154,7 +154,7 @@ static LogEntry parseLogEntry(ReadBuff readBuff) {
 }
 
 void loadLogTable(LogTable l) {
-    int fd = open(logTableFilePath, O_RDONLY | O_CREAT);
+    int fd = open(logTableFilePath, O_RDONLY | O_CREAT, 0644);
     if (fd == FILE_OPEN_ERROR) {
         LOG_PERROR("Failed to open log table file");
     }
